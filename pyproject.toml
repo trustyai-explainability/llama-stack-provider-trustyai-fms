@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llama-stack-provider-trustyai-fms"
+version = "0.1.0"
+description = "TrustyAI FMS provider for Llama Stack"
+requires-python = ">=3.12"
+dependencies = [
+    "llama-stack", 
+    "pydantic",
+    "requests",
+    "aiohttp"
+]
+
+[tool.setuptools]
+packages = ["llama_stack_provider_trustyai_fms"]
