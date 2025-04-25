@@ -21,7 +21,6 @@ source venv/bin/activate
 5. Install the requirements
 ```bash
 pip install -e .
-pip install uvicorn fastapi httpx
 ```
 
 6. Before running `orchestrator_api.yaml`
