@@ -13,6 +13,7 @@ dependencies = [
     "opentelemetry-api",
     "opentelemetry-exporter-otlp",
     "aiosqlite",
+    "jupyter",
     "uvicorn"
 ]
 

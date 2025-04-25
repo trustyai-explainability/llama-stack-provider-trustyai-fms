@@ -36,3 +36,8 @@ export FMS_ORCHESTRATOR_URL="https://$(oc get routes guardrails-nlp -o jsonpath=
 ```bash
 llama stack run orchestrator_api.yaml
 ```
+
+9. Go through the notebook to see how to use the stack, e.g. in an other terminal open:
+```bash
+jupyter notebook notebook-orchestrator-api.ipynb
+```
