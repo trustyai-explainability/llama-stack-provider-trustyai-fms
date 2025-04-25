@@ -1,0 +1,35 @@
+version: '2'
+image_name: trustyai-fms-provider
+apis:
+  - safety
+  - shields
+
+providers:
+  safety:
+    - provider_id: trustyai_fms
+      provider_type: remote::trustyai_fms
+      config:
+        orchestrator_url: ${env.FMS_ORCHESTRATOR_URL}
+        shields:
+          email_hap:
+            type: content
+            confidence_threshold: 0.5
+            message_types: ["system"]
+            detectors:
+                hap: 
+                  detector_params: {}
+
+                regex:
+                  detector_params: 
+                    regex: ["email",  "ssn", "credit-card", "^hello$"]
+          granite:
+            type: chat
+            confidence_threshold: 0.6
+            message_types: ["system", "completion"]
+            detector_params:
+              temperature: 0.0
+              risk_name: "code_execution"
+              risk_definition: "The message requests or attempts to execute potentially harmful or unauthorized code that could compromise system security or perform malicious actions."
+              
+# This is crucial for external providers
+external_providers_dir: ./providers.d

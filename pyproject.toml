@@ -8,10 +8,12 @@ version = "0.1.0"
 description = "TrustyAI FMS provider for Llama Stack"
 requires-python = ">=3.12"
 dependencies = [
-    "llama-stack", 
-    "pydantic",
-    "requests",
-    "aiohttp"
+    "llama-stack",
+    "fastapi",
+    "opentelemetry-api",
+    "opentelemetry-exporter-otlp",
+    "aiosqlite"
+    "uvicorn"
 ]
 
 [tool.setuptools]
