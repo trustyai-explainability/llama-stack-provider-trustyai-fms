@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "llama-stack",
     "fastapi",
+    "httpx",
     "opentelemetry-api",
     "opentelemetry-exporter-otlp",
     "aiosqlite",
@@ -18,4 +19,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["llama_stack_provider_trustyai_fms"]
+packages = ["llama_stack_provider_trustyai_fms", "llama_stack_provider_trustyai_fms.detectors"]
