@@ -1,30 +1,42 @@
 import logging
 from typing import Any, Dict, Optional, Union
 
-# Remove register_provider import since registration is in registry/safety.py
-from llama_stack.apis.safety import Safety
-from llama_stack_provider_trustyai_fms.config import (
-    ChatDetectorConfig,
-    ContentDetectorConfig,
-    DetectorParams,
-    EndpointType,
-    FMSSafetyProviderConfig,
-)
-from llama_stack_provider_trustyai_fms.detectors.base import (
-    BaseDetector,
-    DetectorProvider,
-)
-from llama_stack_provider_trustyai_fms.detectors.chat import ChatDetector
-from llama_stack_provider_trustyai_fms.detectors.content import (
-    ContentDetector,
-)
+# First import the provider spec to ensure registration
+from .provider import get_provider_spec
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Type aliases for better readability
-ConfigType = Union[ContentDetectorConfig, ChatDetectorConfig, FMSSafetyProviderConfig]
-DetectorType = Union[BaseDetector, DetectorProvider]
+# Import Safety API
+from llama_stack.apis.safety import Safety
+from llama_stack.providers.datatypes import Api
+
+# Defer class imports by using a try-except block
+try:
+    from .config import (
+        ChatDetectorConfig,
+        ContentDetectorConfig,
+        DetectorParams,
+        EndpointType,
+        FMSSafetyProviderConfig,
+    )
+    from .detectors.base import (
+        BaseDetector,
+        DetectorProvider,
+    )
+    from .detectors.chat import ChatDetector
+    from .detectors.content import (
+        ContentDetector,
+    )
+
+    # Type aliases for better readability
+    ConfigType = Union[
+        ContentDetectorConfig, ChatDetectorConfig, FMSSafetyProviderConfig
+    ]
+    DetectorType = Union[BaseDetector, DetectorProvider]
+except ImportError:
+    # These will be imported later when actually needed
+    pass
 
 
 class DetectorConfigError(ValueError):
@@ -42,36 +54,23 @@ async def create_fms_provider(config: Dict[str, Any]) -> Safety:
     Returns:
         Safety: Configured FMS safety provider
     """
+    # Import here to avoid circular imports if needed
+    from .config import FMSSafetyProviderConfig
+
     logger.debug("Creating trustyai-fms provider")
     return await get_adapter_impl(FMSSafetyProviderConfig(**config))
 
 
 async def get_adapter_impl(
-    config: Union[Dict[str, Any], FMSSafetyProviderConfig],
-    _deps: Optional[Dict[str, Any]] = None,
-) -> DetectorType:
-    """Get appropriate detector implementation(s) based on config type.
-
-    Args:
-        config: Configuration dictionary or FMSSafetyProviderConfig instance
-        _deps: Optional dependencies for testing/injection
-
-    Returns:
-        Configured detector implementation
-
-    Raises:
-        DetectorConfigError: If configuration is invalid
-    """
+    config: FMSSafetyProviderConfig,
+    deps: Dict[Api, Any],
+) -> DetectorProvider:
+    """Get appropriate detector implementation(s) based on config type."""
     try:
-        if isinstance(config, FMSSafetyProviderConfig):
-            provider_config = config
-        else:
-            provider_config = FMSSafetyProviderConfig(**config)
+        detectors: Dict[str, Any] = {}
 
-        detectors: Dict[str, DetectorType] = {}
-
-        # Changed from provider_config.detectors to provider_config.shields
-        for shield_id, shield_config in provider_config.shields.items():
+        # Process shields configuration
+        for shield_id, shield_config in config.shields.items():
             impl: BaseDetector
             if isinstance(shield_config, ChatDetectorConfig):
                 impl = ChatDetector(shield_config)
@@ -97,6 +96,7 @@ async def get_adapter_impl(
         ) from e
 
 
+# Keep the __all__ list the same
 __all__ = [
     # Factory methods
     "get_adapter_impl",

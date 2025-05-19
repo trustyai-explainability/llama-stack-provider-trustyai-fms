@@ -9,6 +9,17 @@ from pydantic import BaseModel, Field, model_validator
 
 from llama_stack.schema_utils import json_schema_type
 
+# Make sure to export all classes at the module level
+__all__ = [
+    "MessageType",
+    "EndpointType",
+    "DetectorParams",
+    "BaseDetectorConfig",
+    "ContentDetectorConfig",
+    "ChatDetectorConfig",
+    "FMSSafetyProviderConfig",
+]
+
 
 class MessageType(Enum):
     """Valid message types for detectors"""
