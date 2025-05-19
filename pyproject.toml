@@ -1,22 +1,24 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "llama-stack-provider-trustyai-fms"
 version = "0.1.0"
-description = "TrustyAI FMS provider for Llama Stack"
+description = "Add your description here"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "llama-stack",
     "fastapi",
-    "httpx",
     "opentelemetry-api",
     "opentelemetry-exporter-otlp",
     "aiosqlite",
-    "jupyter",
-    "uvicorn"
+    "uvicorn",
+    "ipykernel",
+    "httpx",  
 ]
 
-[tool.setuptools]
-packages = ["llama_stack_provider_trustyai_fms", "llama_stack_provider_trustyai_fms.detectors"]
+
+
+[project.entry-points."llama_stack.providers.remote.safety"]
+trustyai_fms = "llama_stack_provider_trustyai_fms.provider:get_provider_spec"
+
+[project.entry-points."llama_stack.providers.remote.shields"]
+trustyai_fms = "llama_stack_provider_trustyai_fms.provider:get_shields_provider_spec"
