@@ -12,11 +12,11 @@ cd llama-stack-provider-trustyai-fms
 
 3. Create a virtual environment
 ```bash
-python3 -m venv venv
+python3 -m venv .venv
 ```
 4. Activate the virtual environment
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
 5. Install the requirements
 ```bash
