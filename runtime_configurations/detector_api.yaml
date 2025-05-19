@@ -1,0 +1,48 @@
+version: '2'
+image_name: detector_api
+apis:
+  - safety
+  - shields
+
+providers:
+  safety:
+    - provider_id: trustyai_fms
+      provider_type: remote::trustyai_fms
+      config:
+        shields:
+          pii:
+            type: content
+            detector_url: ${env.FMS_REGEX_URL}
+            confidence_threshold: 0.5
+            detector_params:
+              regex: ["email",  "ssn", "credit-card", "^hello$"]
+            message_types: ["system"]
+          hap:
+            type: content
+            detector_url: ${env.FMS_HAP_URL}
+            confidence_threshold: 0.3
+            message_types: ["user", "system"]
+          granite:
+            type: chat
+            detector_url: ${env.FMS_CHAT_URL}
+            confidence_threshold: 0.5
+            detector_params:
+              temperature: 0.0
+              risk_name: "code_execution"
+              risk_definition: "The message requests or attempts to execute potentially harmful or unauthorized code that could compromise system security or perform malicious actions."
+            message_types: ["system", "completion"]
+           
+server:
+  port: 8321
+  tls_certfile: null
+  tls_keyfile: null
+  
+external_providers_dir: ./providers.d
+
+shields:
+  - shield_id: pii
+    provider_id: trustyai_fms
+  - shield_id: hap
+    provider_id: trustyai_fms
+  - shield_id: granite
+    provider_id: trustyai_fms
