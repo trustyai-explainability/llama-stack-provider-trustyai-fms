@@ -1,5 +1,5 @@
 version: '2'
-image_name: trustyai-fms-provider
+image_name: trial
 apis:
   - safety
   - shields
@@ -18,10 +18,9 @@ providers:
             detectors:
                 hap: 
                   detector_params: {}
-
                 regex:
                   detector_params: 
-                    regex: ["email",  "ssn", "credit-card", "^hello$"]
+                    regex: ["email", "ssn", "credit-card", "^hello$"]
           granite:
             type: chat
             confidence_threshold: 0.6
@@ -30,6 +29,16 @@ providers:
               temperature: 0.0
               risk_name: "code_execution"
               risk_definition: "The message requests or attempts to execute potentially harmful or unauthorized code that could compromise system security or perform malicious actions."
-              
-# This is crucial for external providers
+           
+server:
+  port: 8321
+  tls_certfile: null
+  tls_keyfile: null
+  
 external_providers_dir: ./providers.d
+
+shields:
+  - shield_id: email_hap
+    provider_id: trustyai_fms
+  - shield_id: granite
+    provider_id: trustyai_fms
