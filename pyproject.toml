@@ -15,7 +15,8 @@ dependencies = [
     "httpx",  
 ]
 
-
+[tool.setuptools]
+packages = ["llama_stack_provider_trustyai_fms"]
 
 [project.entry-points."llama_stack.providers.remote.safety"]
 trustyai_fms = "llama_stack_provider_trustyai_fms.provider:get_provider_spec"
