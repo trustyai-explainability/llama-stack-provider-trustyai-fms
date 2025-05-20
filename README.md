@@ -1,4 +1,4 @@
-# `trustyai_fms` -- out-of-tree remote safety provider for llama stack
+# `trustyai_fms`: out-of-tree remote safety provider for llama stack
 
 This repo implements [FMS Guardrails Orchestrator](https://github.com/foundation-model-stack/fms-guardrails-orchestrator) together with community detectors: 
 
@@ -42,7 +42,12 @@ as an out-of-tree remote safety provider for [llama stack](https://github.com/me
 
 ## Running demos
 
-### Openshift setup for the orchestrator and detectors
+To run the demos in full, there is a need to deploy the orchestrator and detectors on Openshift, unless you have access to the necessary routes of the deployed services. If you do not have access to these routes, follow 
+[Part A below](#part-a-openshift-setup-for-the-orchestrator-and-detectors) to set them up. 
+
+Subsequently, to create a local llama stack distribution, follow [Part B below](#part-b-setup-to-create-a-local-llama-stack-distribution-with-external-trustyai_fms-remote-safety-provider)
+
+### Part A. Openshift setup for the orchestrator and detectors
 
 The demos require deploying the orchestrator and detectors on Openshift. 
 
@@ -88,9 +93,7 @@ oc new-project test
 oc apply -k openshift-manifests/
 ```
 
-
-
-### Setup to create a local llama stack distribution with external trustyai_fms remote safety provider
+### Part B. Setup to create a local llama stack distribution with external trustyai_fms remote safety provider
 
 1. Clone the repo
 ```bash
