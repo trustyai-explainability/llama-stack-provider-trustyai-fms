@@ -1,0 +1,91 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: guardrails-detector-runtime-vllm
+  annotations:
+    openshift.io/display-name: Guardrails vLLM Detector Serving Runtime for KServe
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  annotations:
+    prometheus.io/port: '8080'
+    prometheus.io/path: '/metrics'
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: guardrails-detector-vllm
+  containers:
+    - name: kserve-container
+      image: quay.io/rgeada/vllm-detector-adapter:0.8.4
+      env:
+        - name: PORT
+          value: "8000"
+        - name: PYTHONPATH
+          value: "/shared_packages/app"
+        - name: MODEL_DIR
+          value: /mnt/models
+        - name: HF_HOME
+          value: /tmp/hf_home
+      command:
+        - bash
+        - -c
+        - |
+            echo "Python version:"
+            python3 --version
+            echo "Current PYTHONPATH: $PYTHONPATH"
+            echo "Contents of shared packages directory:"
+            ls -la /shared_packages/app
+            echo "Starting server..."
+            python3 -m vllm_detector_adapter.api_server \
+              --model /mnt/models \
+              --model-type granite_guardian \
+              --served-model-name={{.Name}} \
+              --dtype half \
+              --max-model-len 8192
+      ports:
+        - containerPort: 8000
+          protocol: TCP
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: granite-guardian-2b-detector
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    openshift.io/display-name: granite-guardian-2b-detector
+    serving.knative.openshift.io/enablePassthrough: 'true'
+    sidecar.istio.io/inject: 'true'
+    sidecar.istio.io/rewriteAppHTTPProbers: 'true'
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    maxReplicas: 1
+    minReplicas: 1
+    model:
+      modelFormat:
+        name: guardrails-detector-vllm
+      name: ''
+      runtime: guardrails-detector-runtime-vllm
+      storage:
+        key: aws-connection-minio-data-connection-detector-models
+        path: granite-guardian-3.1-2b
+      resources:
+        limits:
+          cpu: '2'
+          memory: 8Gi
+          nvidia.com/gpu: '1'
+        requests:
+          cpu: '2'
+          memory: 8Gi
+          nvidia.com/gpu: '1'
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: granite-2b-detector-route
+spec:
+  to:
+    kind: Service
+    name: granite-guardian-2b-detector-predictor

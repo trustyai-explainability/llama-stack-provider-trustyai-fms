@@ -1,0 +1,65 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: fms-orchestr8-config-nlp
+data:
+  config.yaml: |
+    detectors:
+      regex:
+        type: text_contents
+        service:
+            hostname: "127.0.0.1"
+            port: 8080
+        chunker_id: whole_doc_chunker
+        default_threshold: 0.5
+      granite:
+        type: text_chat
+        service:
+          hostname: granite-guardian-2b-detector-predictor
+          port: 8000
+        chunker_id: whole_doc_chunker
+        default_threshold: 0.5
+      hap:
+        type: text_contents
+        service:
+          hostname: ibm-hap-38m-detector-predictor
+          port: 8000
+        chunker_id: whole_doc_chunker
+        default_threshold: 0.5
+---
+apiVersion: trustyai.opendatahub.io/v1alpha1
+kind: GuardrailsOrchestrator
+metadata:
+  name: guardrails-orchestrator
+spec:
+  orchestratorConfig: "fms-orchestr8-config-nlp"
+  enableBuiltInDetectors: true
+  enableGuardrailsGateway: false
+  replicas: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guardrails-detector-service
+  namespace: test
+spec:
+  selector:
+    app: guardrails-orchestrator
+    component: guardrails-orchestrator
+  ports:
+  - name: http
+    port: 8080  # The port the service will be accessible on
+    targetPort: 8080  # Replace with the actual port your sidecar is using
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: pii-detector-route
+  namespace: test
+spec:
+  to:
+    kind: Service
+    name: guardrails-detector-service
+  port:
+    targetPort: http
