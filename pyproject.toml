@@ -1,9 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "llama-stack-provider-trustyai-fms"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.1.0.post1"
+description = "Remote safety provider for Llama Stack integrating FMS Guardrails Orchestrator and community detectors"
+authors = [
+    {name = "GitHub: m-misiura"}
+]
+maintainers = [
+    {name = "GitHub: m-misiura"}
+]
 readme = "README.md"
 requires-python = ">=3.12"
+license = "Apache-2.0"
 dependencies = [
     "llama-stack",
     "fastapi",
@@ -15,8 +26,13 @@ dependencies = [
     "httpx",  
 ]
 
-[tool.setuptools]
-packages = ["llama_stack_provider_trustyai_fms"]
+[project.urls]
+Homepage = "https://github.com/trustyai-explainability/llama-stack-provider-trustyai-fms"
+"Maintainer GitHub" = "https://github.com/m-misiura"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["llama_stack_provider_trustyai_fms*"]
 
 [project.entry-points."llama_stack.providers.remote.safety"]
 trustyai_fms = "llama_stack_provider_trustyai_fms.provider:get_provider_spec"

@@ -1,0 +1,7 @@
+include README.md
+include LICENSE.txt
+recursive-include llama_stack_provider_trustyai_fms *.py
+recursive-include providers.d *
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
