@@ -88,7 +88,7 @@ async def get_adapter_impl(
             if isinstance(detector, BaseDetector):
                 detectors_for_provider[shield_id] = detector
 
-        return DetectorProvider(detectors_for_provider)
+        return DetectorProvider(detectors_for_provider, config)
 
     except Exception as e:
         raise DetectorConfigError(
