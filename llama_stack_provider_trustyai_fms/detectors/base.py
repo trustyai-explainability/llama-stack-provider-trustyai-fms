@@ -680,8 +680,6 @@ class SimpleShieldStore(ShieldStore):
                 f"Shield store {self._store_id} updated params for shield {shield_id}: {params}"
             )
 
-    # In the SimpleShieldStore class, replace the initialize method:
-
     async def initialize(self) -> None:
         """Initialize store and process pending configurations"""
         if self._initialized:
@@ -830,6 +828,77 @@ class SimpleShieldStore(ShieldStore):
                 "Shields must have a valid detector configuration to ensure proper safety checks."
             )
 
+    async def create_dynamic_shield(
+        self, shield_id: str, params: Dict[str, Any]
+    ) -> None:
+        """Create a dynamic shield configuration from API parameters"""
+        from ..config import ContentDetectorConfig, ChatDetectorConfig, DetectorParams
+
+        logger.info(f"Creating dynamic shield configuration for: {shield_id}")
+
+        # Extract shield configuration from API params
+        shield_type = params.get("type", "content")
+        confidence_threshold = params.get("confidence_threshold", 0.5)
+        message_types = params.get("message_types", ["system"])
+
+        # Create detector params
+        detector_params = DetectorParams()
+
+        # Handle detectors configuration (like your email_hap example)
+        if "detectors" in params:
+            detector_params.detectors = params["detectors"]
+
+        # Set orchestrator URL from provider config if available
+        orchestrator_url = None
+        if hasattr(self, "_provider_config") and self._provider_config.orchestrator_url:
+            orchestrator_url = self._provider_config.orchestrator_url
+
+        # Create appropriate config based on type
+        if shield_type == "content":
+            config = ContentDetectorConfig(
+                detector_id=shield_id,
+                confidence_threshold=confidence_threshold,
+                message_types=set(message_types),  # Convert to set as expected
+                detector_params=detector_params,
+                # Runtime parameters (all valid from BaseDetectorConfig)
+                request_timeout=30.0,
+                max_retries=3,
+                backoff_factor=1.5,
+                max_keepalive_connections=5,
+                max_connections=10,
+                max_concurrency=10,
+                # URL configuration
+                orchestrator_url=orchestrator_url,
+                detector_url=None,  # Will be set if needed
+                auth_token=None,
+            )
+        elif shield_type == "chat":
+            config = ChatDetectorConfig(
+                detector_id=shield_id,
+                confidence_threshold=confidence_threshold,
+                message_types=set(message_types),  # Convert to set as expected
+                detector_params=detector_params,
+                # Runtime parameters (all valid from BaseDetectorConfig)
+                request_timeout=30.0,
+                max_retries=3,
+                backoff_factor=1.5,
+                max_keepalive_connections=5,
+                max_connections=10,
+                max_concurrency=10,
+                # URL configuration
+                orchestrator_url=orchestrator_url,
+                detector_url=None,
+                auth_token=None,
+            )
+        else:
+            raise DetectorValidationError(f"Unknown shield type: {shield_type}")
+
+        # Register the configuration
+        await self.register_detector_config(shield_id, config)
+        logger.info(
+            f"Successfully created dynamic configuration for shield: {shield_id}"
+        )
+
     async def list_shields(self) -> ListShieldsResponse:
         """List all registered shields with their parameters"""
         if not self._initialized:
@@ -882,9 +951,14 @@ class SimpleShieldStore(ShieldStore):
 class DetectorProvider(Safety, Shields):
     """Provider for managing safety detectors and shields"""
 
-    def __init__(self, detectors: Dict[str, BaseDetector]) -> None:
+    def __init__(
+        self, detectors: Dict[str, BaseDetector], config: Optional[Any] = None
+    ) -> None:
         self.detectors = detectors
         self._shield_store: ShieldStore = SimpleShieldStore()
+        if config:
+            self._shield_store._provider_config = config
+
         self._shields: Dict[str, Shield] = {}
         self._initialized = False
         self._provider_id = id(self)
@@ -935,7 +1009,6 @@ class DetectorProvider(Safety, Shields):
                         register_method(detector.config.detector_id, detector.config)
                     )
 
-    # Add this helper method to the DetectorProvider class
     def _prepare_shield_for_storage(self, shield: Shield) -> dict:
         """Prepare shield for storage by ensuring all attributes are properly serialized"""
         # Create a complete dictionary manually to ensure all fields are included
@@ -1013,8 +1086,6 @@ class DetectorProvider(Safety, Shields):
         except Exception as e:
             logger.error(f"Provider {self._provider_id} initialization failed: {e}")
             raise
-
-    # In DetectorProvider class
 
     async def list_shields(self) -> ListShieldsResponse:
         """List all registered shields with their parameters"""
@@ -1133,76 +1204,92 @@ class DetectorProvider(Safety, Shields):
 
         raise DetectorValidationError(f"Failed to get shield: {identifier}")
 
-    # In DetectorProvider class
-
-    async def register_shield(
-        self,
-        shield_id: str,
-        provider_shield_id: Optional[str] = None,
-        provider_id: Optional[str] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Shield:
-        """Register a new shield"""
+    async def register_shield(self, shield: Shield) -> Shield:
+        """Register a shield dynamically from API request"""
         if not self._initialized:
             await self.initialize()
 
-        # Get the string identifier regardless of input type
-        if hasattr(shield_id, "identifier"):
-            shield_identifier = shield_id.identifier
-        else:
-            shield_identifier = str(shield_id)
+        shield_identifier = shield.identifier
+        logger.info(
+            f"Provider {self._provider_id} registering shield: {shield_identifier}"
+        )
 
-        logger.debug(f"Registering shield with ID: {shield_identifier}")
-
-        # Check if shield already exists by string identifier
+        # Check if shield already exists
         if shield_identifier in self._shields:
-            shield = self._shields[shield_identifier]
-            logger.debug(
-                f"Shield {shield_identifier} already registered, returning existing instance with params: {shield.params}"
+            existing_shield = self._shields[shield_identifier]
+            logger.info(
+                f"Shield {shield_identifier} already exists, returning existing"
             )
-            return shield
+            return existing_shield
 
-        # Get or create shield from store
-        shield = await self._shield_store.get_shield(shield_identifier)
-        if not shield:
-            raise DetectorValidationError(
-                f"Failed to create shield: {shield_identifier}"
+        try:
+            existing_shield = await self._shield_store.get_shield(shield_identifier)
+            if existing_shield:
+                self._shields[shield_identifier] = existing_shield
+                logger.info(f"Created shield {shield_identifier} from existing config")
+                return existing_shield
+        except DetectorValidationError:
+            # Config doesn't exist - this is expected for dynamic shields
+            logger.info(
+                f"No existing config for {shield_identifier}, creating from API params"
             )
 
-        # Update fields if provided
-        if provider_id:
-            shield.provider_id = provider_id
-        if provider_shield_id:
-            shield.provider_resource_id = provider_shield_id
-        if params is not None:
-            shield.params = params
-
-        # Ensure shield parameters exist even if not provided
-        if not shield.params:
-            detector = next(
-                (
-                    d
-                    for d in self.detectors.values()
-                    if d.config.detector_id == shield_identifier
-                ),
-                None,
+        # dynamic shield creation
+        if shield.params:
+            logger.info(
+                f"Creating dynamic shield {shield_identifier} with params: {shield.params}"
             )
-            if detector:
-                shield.params = self._generate_shield_params(detector)
-                logger.debug(
-                    f"Generated missing parameters for shield {shield_identifier}: {shield.params}"
+
+            # Create a detector config from the API parameters
+            await self._shield_store.create_dynamic_shield(
+                shield_identifier, shield.params
+            )
+
+            try:
+                dynamic_shield = await self._shield_store.get_shield(shield_identifier)
+                self._shields[shield_identifier] = dynamic_shield
+
+                # CREATE AND REGISTER DETECTOR INSTANCE FOR DYNAMIC SHIELD
+                config = self._shield_store._detector_configs.get(shield_identifier)
+                if config:
+                    # Import detector classes
+                    from ..detectors.content import ContentDetector
+                    from ..detectors.chat import ChatDetector
+
+                    # Create detector instance based on type
+                    if config.is_chat:
+                        detector_instance = ChatDetector(config)
+                    else:
+                        detector_instance = ContentDetector(config)
+
+                    # Initialize the detector
+                    await detector_instance.initialize()
+                    detector_instance.shield_store = self._shield_store
+
+                    # Add to detectors dictionary
+                    self.detectors[shield_identifier] = detector_instance
+
+                    # Register shield with the detector
+                    await detector_instance.register_shield(dynamic_shield)
+
+                    logger.info(
+                        f"Created and registered detector instance for dynamic shield: {shield_identifier}"
+                    )
+
+                logger.info(f"Successfully created dynamic shield: {shield_identifier}")
+                return dynamic_shield
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to create dynamic shield {shield_identifier}: {e}"
+                )
+                raise DetectorValidationError(
+                    f"Failed to create dynamic shield {shield_identifier}: {e}"
                 )
 
-        # Store shield by string identifier
-        self._shields[shield_identifier] = shield
-        logger.debug(
-            f"Shield {shield_identifier} registered with params: {shield.params}"
+        raise DetectorValidationError(
+            f"Cannot create shield '{shield_identifier}': no detector configuration found and no API parameters provided"
         )
-        # Register with detectors
-        for detector in self.detectors.values():
-            await detector.register_shield(shield)
-
-        return shield
 
     def _generate_shield_params(self, detector) -> Dict[str, Any]:
         """Generate shield parameters from detector config"""
