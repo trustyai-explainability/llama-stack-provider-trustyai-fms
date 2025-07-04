@@ -4,6 +4,9 @@ import asyncio
 import datetime
 import logging
 import random
+import requests
+import urllib.parse
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -965,6 +968,11 @@ class DetectorProvider(Safety, Shields):
         self._detector_key_to_id = {}  # Add mapping dict
         self._pending_configs = []  # Store configurations for later registration
 
+        # Health check state
+        self._orchestrator_url = getattr(config, 'orchestrator_url', None) if config else None
+        self._service_degraded = False
+        self._check_orchestrator_sync()
+        
         # Store configurations for async registration
         for detector_key, detector in detectors.items():
             detector.shield_store = self._shield_store
@@ -975,6 +983,70 @@ class DetectorProvider(Safety, Shields):
             f"Created DetectorProvider {self._provider_id} with {len(detectors)} detectors"
         )
 
+    def _check_orchestrator_sync(self) -> bool:
+        """
+        Synchronous health check for orchestrator at startup.
+        """
+        if not self._orchestrator_url:
+            logger.warning(
+                "⚠️  No orchestrator_url configured. Safety operations will be disabled. "
+                "Set FMS_ORCHESTRATOR_URL environment variable to enable safety features."
+            )
+            self._service_degraded = True
+            return False
+
+        def _health_url(url: str) -> str:
+            url = url.replace('guardrails-orchestrator', 'guardrails-orchestrator-health')
+            return url.rstrip('/') + '/health' if not url.endswith('/health') else url
+
+        # Validate URL
+        parsed = urllib.parse.urlparse(self._orchestrator_url)
+        if not parsed.scheme or not parsed.netloc:
+            logger.error(f"Invalid orchestrator URL: {self._orchestrator_url}")
+            self._service_degraded = True
+            return False
+
+        session = requests.Session()
+        health_url = _health_url(self._orchestrator_url)
+        endpoints = [
+            ("health", health_url),
+            ("main", self._orchestrator_url),
+        ]
+        for name, url in endpoints:
+            try:
+                response = session.get(url, timeout=5)
+                if name == "health" and response.status_code == 200:
+                    logger.info("✅ FMS Orchestrator health endpoint is available")
+                    self._service_degraded = False
+                    return True
+                elif name == "main" and response.status_code < 500:
+                    logger.info("✅ FMS Orchestrator main endpoint is available")
+                    self._service_degraded = False
+                    return True
+                else:
+                    logger.warning(
+                        f"Orchestrator {name} endpoint at {url} returned status {response.status_code}"
+                    )
+            except requests.exceptions.Timeout:
+                logger.error(f"Timeout when connecting to orchestrator {name} endpoint at {url}")
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"Connection error to orchestrator {name} endpoint at {url}: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error checking orchestrator {name} endpoint at {url}: {e}")
+
+        logger.warning(
+            "⚠️  Cannot reach FMS Orchestrator at %s. Safety operations will be disabled until the service is available.\n"
+            "🚨 SAFETY PROVIDER STARTED IN DEGRADED MODE 🚨\n"
+            "Safety operations are DISABLED until orchestrator is properly configured.\n"
+            "To enable safety features:\n"
+            "1. Set FMS_ORCHESTRATOR_URL to your FMS Orchestrator service URL\n"
+            "2. Ensure the orchestrator service is running and accessible\n"
+            "3. Restart this service",
+            self._orchestrator_url,
+        )
+        self._service_degraded = True
+        return False
+    
     @property
     def shield_store(self) -> ShieldStore:
         return self._shield_store
@@ -1047,7 +1119,11 @@ class DetectorProvider(Safety, Shields):
             return
 
         logger.info(f"Provider {self._provider_id} starting initialization")
-
+        if self._service_degraded:
+            logger.info("Skipping full initialization due to degraded mode")
+            self._initialized = True
+            return
+        
         try:
             # First register all configurations with shield store
             if hasattr(self._shield_store, "register_detector_config"):
