@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field, model_validator
 
 from llama_stack.schema_utils import json_schema_type
 
+import os 
+
 # Make sure to export all classes at the module level
 __all__ = [
     "MessageType",
@@ -328,6 +330,12 @@ class BaseDetectorConfig:
     detector_url: Optional[str] = None
     orchestrator_url: Optional[str] = None
 
+    # SSL / TLS
+    verify_ssl: bool = field(default_factory=lambda: os.getenv('FMS_VERIFY_SSL', 'true').lower() != 'false')
+    ssl_cert_path: Optional[str] = field(default_factory=lambda: os.getenv('FMS_SSL_CERT_PATH'))
+    ssl_client_cert: Optional[str] = None
+    ssl_client_key: Optional[str] = None
+    
     # Flexible storage for any additional parameters
     _extra_params: Dict[str, Any] = field(default_factory=dict)
 
@@ -339,6 +347,30 @@ class BaseDetectorConfig:
     max_keepalive_connections: int = 5  # Max number of keepalive connections
     max_connections: int = 10  # Max number of connections in the pool
 
+    def get_ssl_config(self) -> Dict[str, Any]:
+        """Get SSL configuration for HTTP clients (httpx/requests compatible)"""
+        ssl_config = {}
+        
+        if not self.verify_ssl:
+            ssl_config['verify'] = False
+        elif self.ssl_cert_path:
+            ssl_config['verify'] = self.ssl_cert_path
+        
+        if self.ssl_client_cert:
+            if self.ssl_client_key:
+                ssl_config['cert'] = (self.ssl_client_cert, self.ssl_client_key)
+            else:
+                ssl_config['cert'] = self.ssl_client_cert
+                
+        return ssl_config
+
+    def get_auth_headers(self) -> Dict[str, str]:
+        """Get authentication headers for HTTP requests"""
+        headers = {}
+        if self.auth_token:
+            headers['Authorization'] = f'Bearer {self.auth_token}'
+        return headers
+    
     @property
     def use_orchestrator_api(self) -> bool:
         """Determine if orchestrator API should be used"""
@@ -454,6 +486,9 @@ class FMSSafetyProviderConfig(BaseModel):
 
     # Provider-level orchestrator URL (can be copied to shields if needed)
     orchestrator_url: Optional[str] = None
+    verify_ssl: bool = Field(default_factory=lambda: os.getenv('FMS_VERIFY_SSL', 'true').lower() != 'false')
+    ssl_cert_path: Optional[str] = Field(default_factory=lambda: os.getenv('FMS_SSL_CERT_PATH'))
+    auth_token: Optional[str] = Field(default_factory=lambda: os.getenv('FMS_AUTH_TOKEN'))
 
     class Config:
         arbitrary_types_allowed = True
@@ -511,6 +546,14 @@ class FMSSafetyProviderConfig(BaseModel):
                 # If no orchestrator_url in shield but provider has one, copy it
                 if self.orchestrator_url and "orchestrator_url" not in shield_config:
                     shield_config["orchestrator_url"] = self.orchestrator_url
+                if 'verify_ssl' not in shield_config:
+                    shield_config['verify_ssl'] = self.verify_ssl
+                
+                if 'ssl_cert_path' not in shield_config and self.ssl_cert_path:
+                    shield_config['ssl_cert_path'] = self.ssl_cert_path
+                
+                if 'auth_token' not in shield_config and self.auth_token:
+                    shield_config['auth_token'] = self.auth_token
 
                 # Initialize detector_params with proper structure for nested detectors
                 detector_params_dict = shield_config.get("detector_params", {})
