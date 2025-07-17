@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, ClassVar, Dict, List, Optional, Tuple, cast
 from urllib.parse import urlparse
-
 import httpx
 
 from llama_stack.apis.inference import (
@@ -34,6 +33,9 @@ from llama_stack.apis.shields import ListShieldsResponse, Shield, Shields
 from llama_stack.providers.datatypes import ShieldsProtocolPrivate
 from ..config import (
     BaseDetectorConfig,
+    ContentDetectorConfig,
+    ChatDetectorConfig,
+    DetectorParams,
     EndpointType,
 )
 
@@ -167,12 +169,25 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def initialize(self) -> None:
         """Initialize detector resources"""
         logger.info(f"Initializing {self.__class__.__name__}")
+        
+        # Get SSL configuration from config
+        ssl_config = {}
+        if hasattr(self.config, 'get_ssl_config'):
+            ssl_config = self.config.get_ssl_config()
+        
+         # Add debug logging here
+        logger.debug(f"[DEBUG] SSL config for {self.config.detector_id}: {ssl_config}")
+        logger.debug(f"[DEBUG] ssl_cert_path: {getattr(self.config, 'ssl_cert_path', None)}")
+        logger.debug(f"[DEBUG] verify_ssl: {getattr(self.config, 'verify_ssl', None)}")
+
+        # Create HTTP client with SSL configuration
         self._http_client = httpx.AsyncClient(
             timeout=self.config.request_timeout,
             limits=httpx.Limits(
                 max_keepalive_connections=self.config.max_keepalive_connections,
                 max_connections=self.config.max_connections,
             ),
+            **ssl_config  # Apply SSL configuration here
         )
 
     async def shutdown(self) -> None:
@@ -301,7 +316,11 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         if not self.config.use_orchestrator_api and self.config.detector_id:
             headers["detector-id"] = self.config.detector_id
 
-        if self.config.auth_token:
+        # Use the new get_auth_headers method from config
+        if hasattr(self.config, 'get_auth_headers'):
+            auth_headers = self.config.get_auth_headers()
+            headers.update(auth_headers)
+        elif self.config.auth_token:
             headers["Authorization"] = f"Bearer {self.config.auth_token}"
 
         return headers
@@ -835,10 +854,6 @@ class SimpleShieldStore(ShieldStore):
         self, shield_id: str, params: Dict[str, Any]
     ) -> None:
         """Create a dynamic shield configuration from API parameters"""
-        from ..config import ContentDetectorConfig, ChatDetectorConfig, DetectorParams
-
-        logger.info(f"Creating dynamic shield configuration for: {shield_id}")
-
         # Extract shield configuration from API params
         shield_type = params.get("type", "content")
         confidence_threshold = params.get("confidence_threshold", 0.5)
@@ -874,6 +889,10 @@ class SimpleShieldStore(ShieldStore):
                 orchestrator_url=orchestrator_url,
                 detector_url=None,  # Will be set if needed
                 auth_token=None,
+                verify_ssl=params.get("verify_ssl", True),
+                ssl_cert_path=params.get("ssl_cert_path"),
+                ssl_client_cert=params.get("ssl_client_cert"),
+                ssl_client_key=params.get("ssl_client_key"),
             )
         elif shield_type == "chat":
             config = ChatDetectorConfig(
@@ -892,6 +911,10 @@ class SimpleShieldStore(ShieldStore):
                 orchestrator_url=orchestrator_url,
                 detector_url=None,
                 auth_token=None,
+                verify_ssl=params.get("verify_ssl", True),
+                ssl_cert_path=params.get("ssl_cert_path"),
+                ssl_client_cert=params.get("ssl_client_cert"),
+                ssl_client_key=params.get("ssl_client_key"),
             )
         else:
             raise DetectorValidationError(f"Unknown shield type: {shield_type}")
