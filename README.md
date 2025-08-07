@@ -6,7 +6,7 @@ This repo implements [FMS Guardrails Orchestrator](https://github.com/foundation
 - [Hugging Face content detectors](https://github.com/trustyai-explainability/guardrails-detectors)
 - [vllm detector adapter](https://github.com/foundation-model-stack/vllm-detector-adapter)
 
-as an out-of-tree remote safety provider for [llama stack](https://github.com/meta-llama/llama-stack) based on [this guideline](https://github.com/meta-llama/llama-stack/blob/main/docs/source/providers/external.md)
+as an out-of-tree remote safety provider for [llama stack](https://github.com/meta-llama/llama-stack) based on [this guideline](https://github.com/meta-llama/llama-stack/blob/main/docs/source/apis/external.md)
 
 ## Folder structure
 
