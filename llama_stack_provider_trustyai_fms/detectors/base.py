@@ -676,7 +676,7 @@ class SimpleShieldStore(ShieldStore):
         self._initialized = False
         self._lock = asyncio.Lock()  # Add lock
         logger.info(f"Created SimpleShieldStore: {self._store_id}")
-
+        
     async def register_detector_config(self, detector_id: str, config: Any) -> None:
         """Register detector configuration"""
         async with self._lock:
@@ -1008,7 +1008,11 @@ class DetectorProvider(Safety, Shields):
         if not value:
             logger.warning(f"Provider {self._provider_id} received null shield store")
             return
-
+        if hasattr(self, "_shield_store") and self._shield_store is not None:
+            logger.info(
+                f"Provider {self._provider_id} shield store already set (id: {id(self._shield_store)}), ignoring attempt to overwrite with id: {id(value)}"
+            )
+            return
         logger.info(
             f"Provider {self._provider_id} setting new shield store: {id(value)}"
         )
