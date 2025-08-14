@@ -8,7 +8,7 @@ on:
 
 jobs:
   trivy-scan:
-    name: Trivy Security Scan
+    name: Trivy
     runs-on: ubuntu-latest
     permissions:
       contents: read
