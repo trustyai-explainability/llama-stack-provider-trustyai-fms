@@ -24,7 +24,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY.PASSWORD }}
+          password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Extract metadata
         id: meta
