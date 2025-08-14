@@ -1,0 +1,21 @@
+version: "2"
+image_name: trustyai-fms
+apis:
+  - safety
+  - shields
+providers:
+  safety:
+    - provider_id: trustyai_fms
+      provider_type: remote::trustyai_fms
+      config:
+        orchestrator_url: ${env.FMS_ORCHESTRATOR_URL}
+        shields:
+          pii:
+            type: content
+            confidence_threshold: 0.5
+            message_types: ["system"]
+            detectors:
+                regex:
+                  detector_params:
+                    regex: ["email", "ssn", "credit-card", "^verypersonal$"]
+external_providers_dir: ./providers.d
