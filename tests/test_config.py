@@ -91,7 +91,6 @@ def mock_env_vars():
             os.environ[key] = original_value
 
 class TestDetectorParams:
-
     def test_init_with_kwargs(self, sample_detector_params):
         params = DetectorParams(**sample_detector_params)
         
@@ -146,7 +145,6 @@ class TestDetectorParams:
 
 
 class TestBaseDetectorConfig:
-
     def test_init_basic(self, sample_base_detector_config):
         config = BaseDetectorConfig(**sample_base_detector_config)
         
@@ -243,7 +241,6 @@ class TestBaseDetectorConfig:
         assert config.ssl_cert_path == "/path/to/cert.pem"
 
 class TestFMSSafetyProviderConfig:
-
     def test_init_basic(self, sample_fms_config):
         config = FMSSafetyProviderConfig(**sample_fms_config)
         
