@@ -16,7 +16,7 @@ def get_provider_spec() -> ProviderSpec:
         api=Api.safety,
         adapter=AdapterSpec(
             adapter_type="trustyai_fms",
-            config_class="config.FMSSafetyProviderConfig",
+            config_class="llama_stack_provider_trustyai_fms.config.FMSSafetyProviderConfig",
             module="llama_stack_provider_trustyai_fms",
         ),
     )
@@ -27,7 +27,7 @@ def get_shields_provider_spec() -> ProviderSpec:
         api=Api.shields,
         adapter=AdapterSpec(
             adapter_type="trustyai_fms",
-            config_class="config.FMSSafetyProviderConfig",
+            config_class="llama_stack_provider_trustyai_fms.config.FMSSafetyProviderConfig",
             module="llama_stack_provider_trustyai_fms",
         ),
     )
