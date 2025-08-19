@@ -1,24 +1,40 @@
 name: Build PR LLS Distro Container Image
-
 on:
-  pull_request:
+  pull_request_target:
     branches: [ main ]
+    types: [opened, synchronize, reopened]
 
 env:
   REGISTRY: quay.io
   IMAGE_NAME: trustyai_testing/llama-stack-trustyai-fms
 
 jobs:
+  approval-gate:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    environment: pr-build-distro
+    steps:
+      - name: Wait for approval
+        run: |
+          echo "✅ External PR approved by maintainer"
+          echo "PR: ${{ github.event.pull_request.html_url }}"
+          echo "Author: ${{ github.event.pull_request.user.login }}"
+          echo "Fork: ${{ github.event.pull_request.head.repo.full_name }}"
+
   build-and-push:
+    needs: [approval-gate]
+    if: always() && (needs.approval-gate.result == 'success' || github.event.pull_request.head.repo.full_name == github.repository)
     environment: pr-build-distro
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
+      pull-requests: write
     steps:
-      - name: Checkout repository
+      - name: Checkout PR code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -33,7 +49,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix={{branch}}-,format=short
+            type=ref,event=pr,prefix=pr-
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,format=short
 
       - name: Create temporary build directory
         run: |
@@ -74,7 +91,6 @@ jobs:
                     RUN pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
                     RUN pip install --no-deps sentence-transformers
                     RUN pip install --no-cache llama-stack==0.2.16
-
                     # Install the local provider package
                     RUN pip install -e /opt/app-root/
           
@@ -84,7 +100,7 @@ jobs:
           
           ENTRYPOINT ["python", "-m", "llama_stack.distribution.server.server", "--config", "/opt/app-root/run.yaml"]
           EOF
-          
+
       - name: Create modified provider config
         run: |
           mkdir -p build-context/providers.d/remote/safety
@@ -96,10 +112,12 @@ jobs:
           api_dependencies: ["safety"]
           optional_api_dependencies: ["shields"]
           EOF
-          
-      - name: Build Docker image
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@55146d969b0dff1a5c12630229609757af5b1081
         with:
           context: build-context
           file: build-context/Containerfile
-          push: false
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
