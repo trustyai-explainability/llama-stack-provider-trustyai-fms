@@ -1,43 +1,29 @@
 name: Build PR LLS Distro Container Image
+
 on:
   pull_request_target:
     branches: [ main ]
-    types: [opened, synchronize, reopened]
 
 env:
   REGISTRY: quay.io
   IMAGE_NAME: trustyai_testing/llama-stack-trustyai-fms
 
 jobs:
-  approval-gate:
-    if: github.event.pull_request.head.repo.full_name != github.repository
-    runs-on: ubuntu-latest
-    environment: pr-build-distro
-    steps:
-      - name: Wait for approval
-        run: |
-          echo "✅ External PR approved by maintainer"
-          echo "PR: ${{ github.event.pull_request.html_url }}"
-          echo "Author: ${{ github.event.pull_request.user.login }}"
-          echo "Fork: ${{ github.event.pull_request.head.repo.full_name }}"
-
   build-and-push:
-    needs: [approval-gate]
-    if: always() && (needs.approval-gate.result == 'success' || github.event.pull_request.head.repo.full_name == github.repository)
-    environment: pr-build-distro
     runs-on: ubuntu-latest
+    environment: pr-review
     permissions:
       contents: read
       packages: write
-      pull-requests: write
+
     steps:
-      - name: Checkout PR code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Log in to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.QUAY_USERNAME }}
@@ -49,8 +35,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=pr,prefix=pr-
-            type=sha,prefix=pr-${{ github.event.pull_request.number }}-,format=short
+            type=sha,prefix={{branch}}-,format=short
 
       - name: Create temporary build directory
         run: |
@@ -91,6 +76,7 @@ jobs:
                     RUN pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
                     RUN pip install --no-deps sentence-transformers
                     RUN pip install --no-cache llama-stack==0.2.16
+
                     # Install the local provider package
                     RUN pip install -e /opt/app-root/
           
@@ -113,11 +99,9 @@ jobs:
           optional_api_dependencies: ["shields"]
           EOF
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         uses: docker/build-push-action@55146d969b0dff1a5c12630229609757af5b1081
         with:
           context: build-context
           file: build-context/Containerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: false
