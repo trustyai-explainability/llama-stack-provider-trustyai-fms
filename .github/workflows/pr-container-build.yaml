@@ -10,6 +10,7 @@ env:
 
 jobs:
   build-and-push:
+    environment: pr-build-distro
     runs-on: ubuntu-latest
     permissions:
       contents: read
