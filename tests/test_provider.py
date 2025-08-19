@@ -13,7 +13,7 @@ class TestProviderFunctions:
         assert spec.api == Api.safety
         assert isinstance(spec.adapter, AdapterSpec)
         assert spec.adapter.adapter_type == "trustyai_fms"
-        assert spec.adapter.config_class == "config.FMSSafetyProviderConfig"
+        assert spec.adapter.config_class == "llama_stack_provider_trustyai_fms.config.FMSSafetyProviderConfig"
         assert spec.adapter.module == "llama_stack_provider_trustyai_fms"
 
     def test_get_shields_provider_spec(self):
@@ -23,5 +23,5 @@ class TestProviderFunctions:
         assert spec.api == Api.shields
         assert isinstance(spec.adapter, AdapterSpec)
         assert spec.adapter.adapter_type == "trustyai_fms"
-        assert spec.adapter.config_class == "config.FMSSafetyProviderConfig"
+        assert spec.adapter.config_class == "llama_stack_provider_trustyai_fms.config.FMSSafetyProviderConfig"
         assert spec.adapter.module == "llama_stack_provider_trustyai_fms"
