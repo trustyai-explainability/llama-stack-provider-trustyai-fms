@@ -43,3 +43,28 @@ async def test_run_moderation_error():
     assert len(result.results) == 1
     assert result.results[0].flagged is False
     assert "fail" in result.results[0].metadata["error"]
+    
+@pytest.mark.asyncio
+async def test_run_moderation_empty_input():
+    from llama_stack_provider_trustyai_fms.detectors.base import DetectorProvider
+    provider = DetectorProvider(detectors={})
+    provider._get_shield_id_from_model = AsyncMock(return_value="test_shield")
+    provider._convert_input_to_messages = MagicMock(return_value=[])
+    provider.run_shield = AsyncMock()
+    result = await provider.run_moderation([], "test_model")
+    assert len(result.results) == 0
+
+@pytest.mark.asyncio
+async def test_run_moderation_single_string_input():
+    from llama_stack_provider_trustyai_fms.detectors.base import DetectorProvider
+    provider = DetectorProvider(detectors={})
+    provider._get_shield_id_from_model = AsyncMock(return_value="test_shield")
+    provider._convert_input_to_messages = MagicMock(return_value=[MagicMock(content="one message")])
+    provider.run_shield = AsyncMock(return_value=MagicMock(
+        violation=MagicMock(metadata={"results": [
+            {"message_index": 0, "detection_type": None, "score": None, "status": "pass"}
+        ]})
+    ))
+    result = await provider.run_moderation("one message", "test_model")
+    assert len(result.results) == 1
+    assert result.results[0].user_message == "one message"
