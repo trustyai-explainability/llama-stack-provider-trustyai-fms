@@ -1806,19 +1806,29 @@ class DetectorProvider(Safety, Shields):
     if _HAS_MODERATION:
         async def run_moderation(self, input: str | list[str], model: str) -> ModerationObject:
             """
-            Runs moderation for each input message 
-            Returns a ModerationObject with one ModerationObjectResults per input
+            Runs moderation for each input message.
+            Returns a ModerationObject with one ModerationObjectResults per input.
             """
+            texts = input  # Avoid shadowing the built-in 'input'
             try:
-                shield_id = await self._get_shield_id_from_model(model)
-                messages = self._convert_input_to_messages(input)
+                # Shield ID caching for performance
+                if not hasattr(self, "_model_to_shield_id"):
+                    self._model_to_shield_id = {}
+                if model in self._model_to_shield_id:
+                    shield_id = self._model_to_shield_id[model]
+                else:
+                    shield_id = await self._get_shield_id_from_model(model)
+                    self._model_to_shield_id[model] = shield_id
+
+                messages = self._convert_input_to_messages(texts)
                 shield_response = await self.run_shield(shield_id, messages)
                 metadata = shield_response.violation.metadata if shield_response.violation and shield_response.violation.metadata else {}
                 results_metadata = metadata.get("results", [])
+                # Index results by message_index for O(1) lookup
+                results_by_index = {r.get("message_index"): r for r in results_metadata}
                 moderation_results = []
                 for idx, msg in enumerate(messages):
-                    # Find the result for this message index
-                    result = next((r for r in results_metadata if r.get("message_index") == idx), None)
+                    result = results_by_index.get(idx)
                     categories = {}
                     category_scores = {}
                     category_applied_input_types = {}
@@ -1851,8 +1861,7 @@ class DetectorProvider(Safety, Shields):
                     results=moderation_results,
                 )
             except Exception as e:
-                # On error, return a safe fallback for each input
-                input_list = [input] if isinstance(input, str) else input
+                input_list = [texts] if isinstance(texts, str) else texts
                 return ModerationObject(
                     id=str(uuid.uuid4()),
                     model=model,
@@ -1883,12 +1892,13 @@ class DetectorProvider(Safety, Shields):
             raise ValueError(f"Multiple shields found for model '{model}': {matching_shields}")
         return matching_shields[0]
     
-    def _convert_input_to_messages(self, input: str | list[str]) -> List[Message]:
+    
+    def _convert_input_to_messages(self, texts: str | list[str]) -> List[Message]:
         """Convert string input(s) to UserMessage objects."""
-        if isinstance(input, str):
-            inputs = [input]
+        if isinstance(texts, str):
+            inputs = [texts]
         else:
-            inputs = input
+            inputs = texts
         return [UserMessage(content=text) for text in inputs]
 
     
