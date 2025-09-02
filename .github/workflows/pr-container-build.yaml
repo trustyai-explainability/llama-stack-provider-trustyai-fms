@@ -12,12 +12,18 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    environment: pr-container-build
     permissions:
       contents: read
       packages: write
 
     steps:
+      - name: Check labels
+        uses: mheap/github-action-required-labels@v5
+        with:
+          mode: minimum
+          count: 1
+          labels: "ok-to-test, lgtm, approved"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -82,9 +88,8 @@ jobs:
                     # Install the local provider package
                     RUN pip install -e /opt/app-root/
           
-          RUN mkdir -p ${HOME}/.llama/providers.d ${HOME}/.cache
+          RUN mkdir -p ${HOME}/.cache
           COPY run.yaml ${APP_ROOT}/run.yaml
-          COPY providers.d/ ${HOME}/.llama/providers.d/
           
           ENTRYPOINT ["python", "-m", "llama_stack.distribution.server.server", "--config", "/opt/app-root/run.yaml"]
           EOF
