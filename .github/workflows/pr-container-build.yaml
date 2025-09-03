@@ -52,7 +52,6 @@ jobs:
       - name: Copy provider code to build context
         run: |
           cp -r llama_stack_provider_trustyai_fms/ build-context/
-          cp -r providers.d/ build-context/
           cp run.yaml build-context/
           cp pyproject.toml build-context/
 
@@ -92,18 +91,6 @@ jobs:
           COPY run.yaml ${APP_ROOT}/run.yaml
           
           ENTRYPOINT ["python", "-m", "llama_stack.distribution.server.server", "--config", "/opt/app-root/run.yaml"]
-          EOF
-          
-      - name: Create modified provider config
-        run: |
-          mkdir -p build-context/providers.d/remote/safety
-          cat > build-context/providers.d/remote/safety/trustyai_fms.yaml << 'EOF'
-          adapter:
-            adapter_type: trustyai_fms
-            config_class: llama_stack_provider_trustyai_fms.config.FMSSafetyProviderConfig
-            module: llama_stack_provider_trustyai_fms
-          api_dependencies: ["safety"]
-          optional_api_dependencies: ["shields"]
           EOF
 
       - name: Build Image
