@@ -18,4 +18,3 @@ providers:
                 regex:
                   detector_params:
                     regex: ["email", "ssn", "credit-card", "^verypersonal$"]
-external_providers_dir: ./llama_stack_provider_trustyai_fms
