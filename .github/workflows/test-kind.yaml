@@ -95,8 +95,8 @@ jobs:
 
       - name: Pull and tag distribution image for kind
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:main-${{ github.event.pull_request.head.sha }}
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:main-${{ github.event.pull_request.head.sha }} kind-registry:5000/llama-stack-trustyai-fms:latest
+          docker pull ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:pr-24
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:pr-24 kind-registry:5000/llama-stack-trustyai-fms:latest
           docker push kind-registry:5000/llama-stack-trustyai-fms:latest
 
       #- name: Run smoke tests
