@@ -44,18 +44,24 @@ jobs:
                 kubeletExtraArgs:
                   system-reserved: memory=500Mi
                   eviction-hard: memory.available<200Mi
+            extraPortMappings:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
+            - containerPort: 443
+              hostPort: 443
+              protocol: TCP
           EOF
 
-      - name: Create k8s kind cluster
-        uses: helm/kind-action@v1
+      - name: Create k8s Kind Cluster
+        id: kind
+        uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
         with:
-          node_image: kindest/node:v1.24.17
-          cluster_name: kind
           registry: true
           registry_name: kind-registry
           registry_port: 5000
+          registry_enable_delete: true
           config: kind-config.yaml
-
       #- name: Log in to Container Registry
       #  uses: redhat-actions/podman-login@v1
       #  with:

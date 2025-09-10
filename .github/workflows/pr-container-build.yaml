@@ -1,4 +1,4 @@
-name: Build PR LLS Distro Container Image
+name: Build and Push Distro Image
 
 on:
   pull_request_target:
