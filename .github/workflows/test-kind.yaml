@@ -56,12 +56,12 @@ jobs:
           registry_port: 5000
           config: kind-config.yaml
 
-      - name: Log in to Container Registry
-        uses: redhat-actions/podman-login@v1
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
+      #- name: Log in to Container Registry
+      #  uses: redhat-actions/podman-login@v1
+      #  with:
+      #    registry: ${{ env.REGISTRY }}
+      #    username: ${{ secrets.QUAY_USERNAME }}
+      #    password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Apply CRDs
         run: |
