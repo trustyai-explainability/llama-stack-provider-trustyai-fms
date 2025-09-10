@@ -17,4 +17,4 @@ providers:
             detectors:
                 regex:
                   detector_params:
-                    regex: ["email", "ssn", "credit-card", "^verypersonal$"]
+                    regex: ["email"]
