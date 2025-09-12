@@ -723,52 +723,6 @@ class SimpleShieldStore(ShieldStore):
                 f"Shield store {self._store_id} initialized with {len(self._detector_configs)} configs"
             )
 
-        def _generate_params_for_shield(self, shield_id, config):
-            """Helper method to generate shield parameters from config"""
-            params = {}
-
-            # For content detectors with multiple sub-detectors
-            if hasattr(config, "detectors") and config.detectors:
-                detectors_config = {}
-                for det_id, det_config in config.detectors.items():
-                    det_params = {}
-                    if "detector_params" in det_config:
-                        det_params = det_config["detector_params"]
-                    detectors_config[det_id] = det_params
-                params["detectors"] = detectors_config
-
-            # For chat detectors with model parameters
-            elif hasattr(config, "detector_params") and config.detector_params:
-                if (
-                    hasattr(config.detector_params, "model_params")
-                    and config.detector_params.model_params
-                ):
-                    params["model_params"] = dict(config.detector_params.model_params)
-
-                # Add metadata fields
-                if (
-                    hasattr(config.detector_params, "metadata")
-                    and config.detector_params.metadata
-                ):
-                    if "model_params" not in params:
-                        params["model_params"] = {}
-                    # Add all metadata fields
-                    for key, value in config.detector_params.metadata.items():
-                        params["model_params"][key] = value
-
-            # Add common shield information
-            params.update(
-                {
-                    "display_name": f"{shield_id} Shield",
-                    "display_description": f"Safety shield for {shield_id}",
-                    "detector_type": "content" if not config.is_chat else "chat",
-                    "message_types": list(config.message_types),
-                    "confidence_threshold": config.confidence_threshold,
-                }
-            )
-
-            return params
-
     async def get_shield(self, identifier: str) -> Shield:
         """Get or create shield by identifier"""
         await self.initialize()
@@ -896,7 +850,7 @@ class SimpleShieldStore(ShieldStore):
                 # URL configuration
                 orchestrator_url=orchestrator_url,
                 detector_url=None,  # Will be set if needed
-                auth_token=None,
+                auth_token=params.get("auth_token"),
                 verify_ssl=params.get("verify_ssl", True),
                 ssl_cert_path=params.get("ssl_cert_path"),
                 ssl_client_cert=params.get("ssl_client_cert"),
@@ -918,7 +872,7 @@ class SimpleShieldStore(ShieldStore):
                 # URL configuration
                 orchestrator_url=orchestrator_url,
                 detector_url=None,
-                auth_token=None,
+                auth_token=params.get("auth_token"),
                 verify_ssl=params.get("verify_ssl", True),
                 ssl_cert_path=params.get("ssl_cert_path"),
                 ssl_client_cert=params.get("ssl_client_cert"),
