@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NAMESPACE="test"
-BASE_PATH="./manifests"
+BASE_PATH="tests/kind/manifests"
 VLLM_EMULATOR="vllm_emulator.yaml"
 LLAMA_STACK_DISTRIBUTION="llama_stack_distribution.yaml"
 ORCHESTRATOR_CONFIGMAP="gorch_cm.yaml"
