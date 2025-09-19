@@ -93,12 +93,16 @@ jobs:
       - name: Load TrustyAI operator image into Kind
         run: |
           docker pull quay.io/trustyai/trustyai-service-operator:latest
-          kind load docker-image quay.io/trustyai/trustyai-service-operator:latest --name kind
+          echo "Available Kind clusters:"
+          kind get clusters
+          echo "Kubectl context:"
+          kubectl config current-context
+          kind load docker-image quay.io/trustyai/trustyai-service-operator:latest --name ${{ steps.kind.outputs.name }}
 
       - name: Load VLLM emulator image into Kind
         run: |
           docker pull quay.io/trustyai_testing/vllm_emulator:latest
-          kind load docker-image quay.io/trustyai_testing/vllm_emulator:latest --name kind
+          kind load docker-image quay.io/trustyai_testing/vllm_emulator:latest --name ${{ steps.kind.outputs.name }}
 
       - name: Clone TrustyAI operator repository
         run: |
