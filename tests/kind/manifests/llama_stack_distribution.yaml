@@ -2,7 +2,6 @@ apiVersion: llamastack.io/v1alpha1
 kind: LlamaStackDistribution
 metadata:
   name: llamastack-custom-distribution
-  namespace: llamastack
 spec:
   replicas: 1
   server:
