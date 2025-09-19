@@ -117,6 +117,8 @@ jobs:
       - name: Apply CRDs
         run: |
           kubectl apply -f tests/kind/manifests/route_crd.yaml
+          kubectl apply -f tests/kind/manifests/monitoring.coreos.com_servicemonitors.yaml
+
           kubectl apply -k https://github.com/llamastack/llama-stack-k8s-operator/config/crd
           kubectl apply -k https://github.com/trustyai-explainability/trustyai-service-operator/config/crd
 
