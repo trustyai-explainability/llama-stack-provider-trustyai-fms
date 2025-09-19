@@ -1,4 +1,4 @@
-name: Run Kind tests
+name: Run Kind Tests
 
 on:
   pull_request:
@@ -62,6 +62,7 @@ jobs:
           registry_port: 5000
           registry_enable_delete: true
           config: kind-config.yaml
+          wait: 120s
 
       - name: Clone llama-stack-k8s-operator
         run: |
@@ -92,12 +93,12 @@ jobs:
       - name: Load TrustyAI operator image into Kind
         run: |
           docker pull quay.io/trustyai/trustyai-service-operator:latest
-          kind load docker-image quay.io/trustyai/trustyai-service-operator:latest
+          kind load docker-image quay.io/trustyai/trustyai-service-operator:latest --name kind
 
       - name: Load VLLM emulator image into Kind
         run: |
           docker pull quay.io/trustyai_testing/vllm_emulator:latest
-          kind load docker-image quay.io/trustyai_testing/vllm_emulator:latest
+          kind load docker-image quay.io/trustyai_testing/vllm_emulator:latest --name kind
 
       - name: Clone TrustyAI operator repository
         run: |
