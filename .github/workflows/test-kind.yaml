@@ -1,4 +1,4 @@
-name: Smoke test
+name: Run Kind tests
 
 on:
   pull_request:
@@ -62,16 +62,6 @@ jobs:
           registry_port: 5000
           registry_enable_delete: true
           config: kind-config.yaml
-      #- name: Log in to Container Registry
-      #  uses: redhat-actions/podman-login@v1
-      #  with:
-      #    registry: ${{ env.REGISTRY }}
-      #    username: ${{ secrets.QUAY_USERNAME }}
-      #    password: ${{ secrets.QUAY_PASSWORD }}
-
-      - name: Apply CRDs
-        run: |
-          kubectl apply -f tests/kind/crds/route_crd.yaml
 
       - name: Clone llama-stack-k8s-operator
         run: |
@@ -93,29 +83,57 @@ jobs:
             exit 1
           fi
 
-      - name: Pull and tag distribution image for kind
+      - name: Pull and tag FMS provider image for kind
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:pr-24
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:pr-24 kind-registry:5000/llama-stack-trustyai-fms:latest
+          docker pull ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }} kind-registry:5000/llama-stack-trustyai-fms:latest
           docker push kind-registry:5000/llama-stack-trustyai-fms:latest
 
-      #- name: Run smoke tests
-      #  run: ./tests/smoke/test_smoke.sh
+      - name: Load TrustyAI operator image into Kind
+        run: |
+          docker pull quay.io/trustyai/trustyai-service-operator:latest
+          kind load docker-image quay.io/trustyai/trustyai-service-operator:latest
 
-      #- name: Get logs
-      #  if: ${{ always() }}
-      #  run: |
-      #    kubectl -n llama-stack-test get all -o yaml > all.log
-      #    kubectl -n llama-stack-k8s-operator-system logs deployment.apps/llama-stack-k8s-operator-controller-manager > controller-manager.log
-      #    kubectl -n llama-stack-test describe all > all-describe.log
-      #    kubectl -n llama-stack-test describe events > events.log
-      #    kubectl get llamastackdistributions --all-namespaces -o yaml > llamastackdistributions.log
+      - name: Load VLLM emulator image into Kind
+        run: |
+          docker pull quay.io/trustyai_testing/vllm_emulator:latest
+          kind load docker-image quay.io/trustyai_testing/vllm_emulator:latest
 
-      #- name: Upload all logs to artifacts
-      #  if: ${{ always() }}
-      #  uses: actions/upload-artifact@v4
-      #  with:
-      #    name: logs-${{ github.run_id }}-${{ github.run_attempt }}
-      #    path: |
-      #      *.log
-      #    retention-days: 1
+      - name: Clone TrustyAI operator repository
+        run: |
+          git clone https://github.com/trustyai-explainability/trustyai-service-operator.git
+          cd trustyai-service-operator
+          git checkout main
+
+      - name: Apply CRDs
+        run: |
+          kubectl apply -f tests/kind/manifests/route_crd.yaml
+          kubectl apply -k https://github.com/llamastack/llama-stack-k8s-operator/config/crd
+          kubectl apply -k https://github.com/trustyai-explainability/trustyai-service-operator/config/crd
+
+      - name: Deploy TrustyAI operator
+        run: |
+          cd trustyai-service-operator
+          kubectl create namespace system
+          kubectl apply -k config/base -n system
+
+      - name: Run Kind Tests
+        run: ./tests/kind/test_kind.sh
+
+      - name: Get logs
+        if: ${{ always() }}
+        run: |
+          kubectl -n test get all -o yaml > all.log
+          kubectl -n llama-stack-k8s-operator-system logs deployment.apps/llama-stack-k8s-operator-controller-manager > controller-manager.log
+          kubectl -n test describe all > all-describe.log
+          kubectl -n test describe events > events.log
+          kubectl get llamastackdistributions --all-namespaces -o yaml > llamastackdistributions.log
+
+      - name: Upload all logs to artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            *.log
+          retention-days: 1
