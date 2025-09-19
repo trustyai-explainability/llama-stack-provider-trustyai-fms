@@ -1,0 +1,23 @@
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: llamastack-custom-distribution
+spec:
+  replicas: 1
+  server:
+    containerSpec:
+      env:
+        - name: VLLM_URL
+          value:
+        - name: INFERENCE_MODEL
+          value: vllm-emulator
+        - name: MILVUS_DB_PATH
+          value: ~/.llama/milvus.db
+        - name: VLLM_TLS_VERIFY
+          value: 'false'
+        - name: FMS_ORCHESTRATOR_URL
+          value: 'http://localhost:1234'
+      name: llama-stack
+      port: 8321
+    distribution:
+      image: "kind-registry:5000/llama-stack-trustyai-fms:latest"

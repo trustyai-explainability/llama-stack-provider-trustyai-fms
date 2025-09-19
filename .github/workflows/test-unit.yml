@@ -1,4 +1,4 @@
-name: Tests
+name: Run Unit Tests
 
 on:
   pull_request:
@@ -25,4 +25,4 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest tests/ -v
+          python -m pytest tests/unit/ -v
