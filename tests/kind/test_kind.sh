@@ -31,16 +31,16 @@ wait_for_pods() {
 kubectl create namespace "$NAMESPACE"
 
 # Deploy the vLLM emulator
-kubectl apply -f ${BASE_PATH}/${VLLM_EMULATOR}
+kubectl apply -f ${BASE_PATH}/${VLLM_EMULATOR} -n "$NAMESPACE"
 wait_for_pods "$NAMESPACE" "app=vllm-emulator" 300 "vLLM emulator"
 
 # Deploy the orchestrator ConfigMap and the GuardrailsOrchestrator
-kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP}
-kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR}
+kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
+kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
 # Deploy the LlamaStackDistribution with image substitution
-envsubst < ${BASE_PATH}/${LLAMA_STACK_DISTRIBUTION} | kubectl apply -f -
+envsubst < ${BASE_PATH}/${LLAMA_STACK_DISTRIBUTION} | kubectl apply -f - -n "$NAMESPACE"
 wait_for_pods "llamastack" "app.kubernetes.io/name=llamastack-custom-distribution" 300 "LlamaStackDistribution"
 
 
