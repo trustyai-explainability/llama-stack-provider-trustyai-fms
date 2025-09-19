@@ -70,10 +70,16 @@ jobs:
           cd llama-stack-k8s-operator
           git checkout odh
 
+      - name: Build and push llama-stack-k8s-operator
+        run: |
+          cd llama-stack-k8s-operator
+          docker build -t kind-registry:5000/llama-stack-k8s-operator:latest -f Dockerfile .
+          docker push kind-registry:5000/llama-stack-k8s-operator:latest
+
       - name: Deploy llama-stack-k8s-operator
         run: |
           cd llama-stack-k8s-operator
-          make deploy IMG=quay.io/opendatahub/llama-stack-k8s-operator:latest
+          make deploy IMG=kind-registry:5000/llama-stack-k8s-operator:latest
           
           # Wait for operator deployment to be ready
           if ! kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system; then
@@ -93,16 +99,14 @@ jobs:
       - name: Load TrustyAI operator image into Kind
         run: |
           docker pull quay.io/trustyai/trustyai-service-operator:latest
-          echo "Available Kind clusters:"
-          kind get clusters
-          echo "Kubectl context:"
-          kubectl config current-context
-          kind load docker-image quay.io/trustyai/trustyai-service-operator:latest --name ${{ steps.kind.outputs.name }}
+          docker tag quay.io/trustyai/trustyai-service-operator:latest kind-registry:5000/trustyai-service-operator:latest
+          docker push kind-registry:5000/trustyai-service-operator:latest
 
       - name: Load VLLM emulator image into Kind
         run: |
           docker pull quay.io/trustyai_testing/vllm_emulator:latest
-          kind load docker-image quay.io/trustyai_testing/vllm_emulator:latest --name ${{ steps.kind.outputs.name }}
+          docker tag quay.io/trustyai_testing/vllm_emulator:latest kind-registry:5000/vllm_emulator:latest
+          docker push kind-registry:5000/vllm_emulator:latest
 
       - name: Clone TrustyAI operator repository
         run: |
