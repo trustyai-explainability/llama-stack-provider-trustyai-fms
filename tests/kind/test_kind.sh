@@ -39,10 +39,14 @@ kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 sleep 120
 
+echo "=============================="
+echo "DEBUGGING"
 kubectl get all -n "$NAMESPACE"
 kubectl describe GuardrailsOrchestrator guardrails-orchestrator -n "$NAMESPACE"
 echo "=============================="
 kubectl get all -n system
+echo "Getting logs for trustyai-service-operator-controller-manager pod..."
+kubectl logs -n system $(kubectl get pods -n system | grep trustyai-service-operator-controller-manager | awk '{print $1}') --tail=50
 
 wait_for_pods "$NAMESPACE" "app=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
