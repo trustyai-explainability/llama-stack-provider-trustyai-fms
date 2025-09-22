@@ -5,6 +5,7 @@ BASE_PATH="tests/kind/manifests"
 VLLM_EMULATOR="vllm_emulator.yaml"
 LLAMA_STACK_DISTRIBUTION="llama_stack_distribution.yaml"
 ORCHESTRATOR_CONFIGMAP="gorch_cm.yaml"
+GUARDRAILS_TLS_SECRET="gorch_cm.yaml"
 GUARDRAILS_ORCHESTRATOR="gorch.yaml"
 
 # Set the provider image for substitution
@@ -46,6 +47,7 @@ echo "TrustyAI operator controller is ready"
 
 # Deploy the orchestrator ConfigMap and the GuardrailsOrchestrator
 kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
+kubectl apply -f ${BASE_PATH}/${GUARDRAILS_TLS_SECRET} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 
 echo "=============================="
