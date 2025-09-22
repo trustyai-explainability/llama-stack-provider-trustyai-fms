@@ -48,7 +48,7 @@ jobs:
               kind: ClusterConfiguration
               apiServer:
                 extraArgs:
-                  disable-admission-plugins: "PodSecurity,SecurityContextDeny"
+                  disable-admission-plugins: "PodSecurity"
             extraPortMappings:
             - containerPort: 80
               hostPort: 80
