@@ -4,11 +4,7 @@ metadata:
   name: guardrails-orchestrator-tls
   annotations:
     service.beta.openshift.io/serving-cert-secret-name: guardrails-orchestrator-tls
-  ownerReferences:
-    - apiVersion: v1
-      kind: Service
-      name: guardrails-orchestrator-service
 type: kubernetes.io/tls
 data:
-  tls.crt: dummy
-  tls.key: dummy
+  tls.crt: ZHVtbXk=
+  tls.key: ZHVtbXk=
