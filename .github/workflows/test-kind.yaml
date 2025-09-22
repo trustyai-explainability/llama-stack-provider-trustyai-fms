@@ -42,8 +42,8 @@ jobs:
               kind: InitConfiguration
               nodeRegistration:
                 kubeletExtraArgs:
-                  system-reserved: memory=500Mi
-                  eviction-hard: memory.available<200Mi
+                  system-reserved: memory=1Gi
+                  eviction-hard: memory.available<500Mi
             extraPortMappings:
             - containerPort: 80
               hostPort: 80

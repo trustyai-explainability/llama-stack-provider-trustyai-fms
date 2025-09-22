@@ -34,10 +34,19 @@ kubectl create namespace "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${VLLM_EMULATOR} -n "$NAMESPACE"
 wait_for_pods "$NAMESPACE" "app=vllm-emulator" 300 "vLLM emulator"
 
+# Wait for the TrustyAI operator controller to be ready
+echo "Waiting for TrustyAI operator controller to be ready..."
+if ! kubectl wait --for=condition=ready pod -l control-plane=controller-manager -n system --timeout=300s; then
+    echo "ERROR: TrustyAI operator controller failed to become ready within 300 seconds"
+    kubectl get pods -n system
+    kubectl logs -n system $(kubectl get pods -n system | grep trustyai-service-operator-controller-manager | awk '{print $1}') --tail=100
+    exit 1
+fi
+echo "TrustyAI operator controller is ready"
+
 # Deploy the orchestrator ConfigMap and the GuardrailsOrchestrator
 kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
-sleep 120
 
 echo "=============================="
 echo "DEBUGGING"
@@ -49,7 +58,7 @@ echo "Getting logs for trustyai-service-operator-controller-manager pod..."
 kubectl logs -n system $(kubectl get pods -n system | grep trustyai-service-operator-controller-manager | awk '{print $1}') --tail=50
 kubectl describe Deployment trustyai-service-operator-controller-manager -n system
 
-wait_for_pods "$NAMESPACE" "app=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
+wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
 # Deploy the LlamaStackDistribution with image substitution
 envsubst < ${BASE_PATH}/${LLAMA_STACK_DISTRIBUTION} | kubectl apply -f - -n "$NAMESPACE"
