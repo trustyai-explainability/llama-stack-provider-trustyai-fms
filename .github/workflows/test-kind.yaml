@@ -44,6 +44,11 @@ jobs:
                 kubeletExtraArgs:
                   system-reserved: memory=1Gi
                   eviction-hard: memory.available<500Mi
+            - |
+              kind: ClusterConfiguration
+              apiServer:
+                extraArgs:
+                  disable-admission-plugins: "PodSecurity"
             extraPortMappings:
             - containerPort: 80
               hostPort: 80
