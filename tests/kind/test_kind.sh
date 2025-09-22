@@ -51,14 +51,41 @@ kubectl apply -f ${BASE_PATH}/${GUARDRAILS_TLS_SECRET} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 
 echo "=============================="
-echo "DEBUGGING"
-kubectl get all -n "$NAMESPACE"
-kubectl describe GuardrailsOrchestrator guardrails-orchestrator -n "$NAMESPACE"
+echo "MONITORING TRUSTYAI OPERATOR AND GUARDRAILS ORCHESTRATOR"
 echo "=============================="
-kubectl get all -n system
-echo "Getting logs for trustyai-service-operator-controller-manager pod..."
-kubectl logs -n system $(kubectl get pods -n system | grep trustyai-service-operator-controller-manager | awk '{print $1}') --tail=50
-kubectl describe Deployment trustyai-service-operator-controller-manager -n system
+
+# Monitor for 3 minutes with 30-second intervals
+for i in {1..6}; do
+    echo "--- Check $i/6 ($(date)) ---"
+
+    echo "TrustyAI Operator Pod Status:"
+    kubectl get pods -n system -l control-plane=controller-manager
+
+    echo "TrustyAI Operator Logs (last 20 lines):"
+    kubectl logs -n system $(kubectl get pods -n system | grep trustyai-service-operator-controller-manager | awk '{print $1}') --tail=20 2>/dev/null || echo "No logs available"
+
+    echo "GuardrailsOrchestrator Status:"
+    kubectl get GuardrailsOrchestrator guardrails-orchestrator -n "$NAMESPACE" -o wide 2>/dev/null || echo "GuardrailsOrchestrator not found"
+
+    echo "GuardrailsOrchestrator Description:"
+    kubectl describe GuardrailsOrchestrator guardrails-orchestrator -n "$NAMESPACE" 2>/dev/null || echo "GuardrailsOrchestrator not found"
+
+    echo "All resources in test namespace:"
+    kubectl get all -n "$NAMESPACE"
+
+    echo "Events in test namespace:"
+    kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' | tail -10
+
+    if [ $i -lt 6 ]; then
+        echo "Waiting 30 seconds before next check..."
+        sleep 30
+    fi
+    echo ""
+done
+
+echo "=============================="
+echo "FINAL STATUS CHECK"
+echo "=============================="
 
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
