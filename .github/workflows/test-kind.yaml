@@ -78,6 +78,8 @@ jobs:
 
       - name: Deploy llama-stack-k8s-operator
         run: |
+          kubectl create namespace system
+          
           cd llama-stack-k8s-operator
           make deploy IMG=kind-registry:5000/llama-stack-k8s-operator:latest
           
@@ -125,7 +127,6 @@ jobs:
       - name: Deploy TrustyAI operator
         run: |
           cd trustyai-service-operator
-          kubectl create namespace system
           kubectl apply -k config/base -n system
 
       - name: Run Kind Tests
