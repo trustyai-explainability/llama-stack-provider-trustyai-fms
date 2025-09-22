@@ -47,6 +47,7 @@ echo "=============================="
 kubectl get all -n system
 echo "Getting logs for trustyai-service-operator-controller-manager pod..."
 kubectl logs -n system $(kubectl get pods -n system | grep trustyai-service-operator-controller-manager | awk '{print $1}') --tail=50
+kubectl describe Deployment trustyai-service-operator-controller-manager -n "$NAMESPACE"
 
 wait_for_pods "$NAMESPACE" "app=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
