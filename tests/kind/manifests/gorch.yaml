@@ -8,5 +8,3 @@ spec:
   enableGuardrailsGateway: false
   logLevel: DEBUG
   replicas: 1
-  securityContext:
-    runAsNonRoot: false

@@ -109,6 +109,11 @@ jobs:
           docker tag quay.io/trustyai_testing/vllm_emulator:latest kind-registry:5000/vllm_emulator:latest
           docker push kind-registry:5000/vllm_emulator:latest
 
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
       - name: Clone TrustyAI operator repository
         run: |
           git clone https://github.com/trustyai-explainability/trustyai-service-operator.git
@@ -122,14 +127,16 @@ jobs:
           kubectl apply -f tests/kind/manifests/serving.kserve.io_inferenceservices.yaml
 
           kubectl apply -k https://github.com/llamastack/llama-stack-k8s-operator/config/crd
-          kubectl apply -k https://github.com/trustyai-explainability/trustyai-service-operator/config/crd
+
+          cd trustyai-service-operator
+          kustomize build config/crd | kubectl apply -f -
 
       - name: Deploy TrustyAI operator
         run: |
           kubectl create namespace system
-          
+
           cd trustyai-service-operator
-          kubectl apply -k config/base -n system
+          kustomize build config/base | kubectl apply -n system -f -
 
       - name: Run Kind Tests
         run: ./tests/kind/test_kind.sh
