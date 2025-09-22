@@ -84,9 +84,9 @@ jobs:
           # Wait for operator deployment to be ready
           if ! kubectl wait --for=condition=available --timeout=300s deployment/llama-stack-k8s-operator-controller-manager -n system; then
             echo "Deployment failed to become ready. Debugging information:"
-            kubectl describe deployment llama-stack-k8s-operator-controller-manager -n llama-stack-k8s-operator-system
-            kubectl logs -l control-plane=controller-manager -n llama-stack-k8s-operator-system --tail=100
-            kubectl get events -n llama-stack-k8s-operator-system --sort-by='.lastTimestamp'
+            kubectl describe deployment llama-stack-k8s-operator-controller-manager -n system
+            kubectl logs -l control-plane=controller-manager -n system --tail=100
+            kubectl get events -n system --sort-by='.lastTimestamp'
             exit 1
           fi
 
