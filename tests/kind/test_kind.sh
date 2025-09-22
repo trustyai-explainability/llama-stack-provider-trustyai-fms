@@ -37,6 +37,11 @@ wait_for_pods "$NAMESPACE" "app=vllm-emulator" 300 "vLLM emulator"
 # Deploy the orchestrator ConfigMap and the GuardrailsOrchestrator
 kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
+sleep 60
+
+kubectl get all -n "$NAMESPACE"
+kubectl describe GuardrailsOrchestrator guardrails-orchestrator -n "$NAMESPACE"
+
 wait_for_pods "$NAMESPACE" "app=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
 # Deploy the LlamaStackDistribution with image substitution
