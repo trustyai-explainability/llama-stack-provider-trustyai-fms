@@ -44,12 +44,14 @@ if ! kubectl wait --for=condition=ready pod -l control-plane=controller-manager 
     exit 1
 fi
 echo "TrustyAI operator controller is ready"
+sleep 60
 
 # Deploy the orchestrator ConfigMap and the GuardrailsOrchestrator
 kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_TLS_SECRET} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 
+sleep 60
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"
 
 # Deploy the LlamaStackDistribution with image substitution

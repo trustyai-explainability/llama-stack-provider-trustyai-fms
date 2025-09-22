@@ -70,7 +70,7 @@ jobs:
           cd llama-stack-k8s-operator
           git checkout odh
 
-      - name: Build and push llama-stack-k8s-operator
+      - name: Build llama-stack-k8s-operator and push to Kind registry
         run: |
           cd llama-stack-k8s-operator
           docker build -t kind-registry:5000/llama-stack-k8s-operator:latest -f Dockerfile .
