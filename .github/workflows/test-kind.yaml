@@ -44,14 +44,6 @@ jobs:
                 kubeletExtraArgs:
                   system-reserved: memory=1Gi
                   eviction-hard: memory.available<500Mi
-            - |
-              kind: ClusterConfiguration
-              apiServer:
-                extraArgs:
-                  feature-gates: "PodSecurity=true"
-              controllerManager:
-                extraArgs:
-                  feature-gates: "PodSecurity=true"
             extraPortMappings:
             - containerPort: 80
               hostPort: 80
