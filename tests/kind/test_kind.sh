@@ -31,6 +31,11 @@ wait_for_pods() {
 # Create a namespace for testing
 kubectl create namespace "$NAMESPACE"
 
+# Configure Pod Security Standards for the test namespace
+kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/enforce=privileged --overwrite
+kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/audit=privileged --overwrite
+kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/warn=privileged --overwrite
+
 # Deploy the vLLM emulator
 kubectl apply -f ${BASE_PATH}/${VLLM_EMULATOR} -n "$NAMESPACE"
 wait_for_pods "$NAMESPACE" "app=vllm-emulator" 300 "vLLM emulator"

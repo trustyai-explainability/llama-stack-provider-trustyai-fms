@@ -44,6 +44,14 @@ jobs:
                 kubeletExtraArgs:
                   system-reserved: memory=1Gi
                   eviction-hard: memory.available<500Mi
+            - |
+              kind: ClusterConfiguration
+              apiServer:
+                extraArgs:
+                  feature-gates: "PodSecurity=true"
+              controllerManager:
+                extraArgs:
+                  feature-gates: "PodSecurity=true"
             extraPortMappings:
             - containerPort: 80
               hostPort: 80
@@ -137,6 +145,13 @@ jobs:
 
           cd trustyai-service-operator
           kustomize build config/base | kubectl apply -n system -f -
+
+      - name: Configure Pod Security Standards
+        run: |
+          # Label namespaces with permissive pod security standards
+          kubectl label namespace system pod-security.kubernetes.io/enforce=privileged --overwrite
+          kubectl label namespace system pod-security.kubernetes.io/audit=privileged --overwrite
+          kubectl label namespace system pod-security.kubernetes.io/warn=privileged --overwrite
 
       - name: Run Kind Tests
         run: ./tests/kind/test_kind.sh
