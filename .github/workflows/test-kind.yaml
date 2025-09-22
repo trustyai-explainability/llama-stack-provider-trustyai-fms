@@ -144,11 +144,28 @@ jobs:
       - name: Get logs
         if: ${{ always() }}
         run: |
+          # Test namespace resources and logs
           kubectl -n test get all -o yaml > all.log
-          kubectl -n llama-stack-k8s-operator-system logs deployment.apps/llama-stack-k8s-operator-controller-manager > controller-manager.log
           kubectl -n test describe all > all-describe.log
           kubectl -n test describe events > events.log
+
+          # LlamaStack operator logs
+          kubectl -n llama-stack-k8s-operator-system logs deployment.apps/llama-stack-k8s-operator-controller-manager > controller-manager.log
           kubectl get llamastackdistributions --all-namespaces -o yaml > llamastackdistributions.log
+
+          # TrustyAI operator logs and resources
+          kubectl -n system get all -o yaml > trustyai-system-all.log
+          kubectl -n system describe all > trustyai-system-describe.log
+          kubectl -n system logs -l control-plane=controller-manager > trustyai-operator.log || echo "No TrustyAI operator logs available" > trustyai-operator.log
+          kubectl -n system describe events > trustyai-system-events.log
+
+          # GuardrailsOrchestrator resources
+          kubectl get GuardrailsOrchestrator --all-namespaces -o yaml > guardrails-orchestrators.log || echo "No GuardrailsOrchestrator found" > guardrails-orchestrators.log
+          kubectl -n test describe GuardrailsOrchestrator > guardrails-orchestrator-describe.log || echo "No GuardrailsOrchestrator in test namespace" > guardrails-orchestrator-describe.log
+
+          # Cluster-wide information
+          kubectl get pods --all-namespaces > all-pods.log
+          kubectl get events --all-namespaces --sort-by='.lastTimestamp' > all-events.log
 
       - name: Upload all logs to artifacts
         if: ${{ always() }}
