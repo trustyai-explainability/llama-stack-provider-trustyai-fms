@@ -5,7 +5,7 @@ BASE_PATH="tests/kind/manifests"
 VLLM_EMULATOR="vllm_emulator.yaml"
 LLAMA_STACK_DISTRIBUTION="llama_stack_distribution.yaml"
 ORCHESTRATOR_CONFIGMAP="gorch_cm.yaml"
-GUARDRAILS_TLS_SECRET="gorch_cm.yaml"
+GUARDRAILS_TLS_SECRET="gorch_tls.yaml"
 GUARDRAILS_ORCHESTRATOR="gorch.yaml"
 
 # Set the provider image for substitution
