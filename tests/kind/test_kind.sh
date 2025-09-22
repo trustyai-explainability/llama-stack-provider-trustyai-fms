@@ -41,6 +41,7 @@ sleep 60
 
 kubectl get all -n "$NAMESPACE"
 kubectl describe GuardrailsOrchestrator guardrails-orchestrator -n "$NAMESPACE"
+kubectl describe Deployment guardrails-orchestrator -n "$NAMESPACE"
 
 wait_for_pods "$NAMESPACE" "app=guardrails-orchestrator" 300 "GuardrailsOrchestrator"
 
