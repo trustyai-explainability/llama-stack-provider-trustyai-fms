@@ -23,9 +23,10 @@ wait_for_pods() {
         echo "ERROR: $description failed to become ready within ${timeout} seconds"
         kubectl get pods -l "$label_selector" -n "$namespace"
         kubectl describe pods -l "$label_selector" -n "$namespace"
-        exit 1
+        return 1
     fi
     echo "$description is ready"
+    return 0
 }
 
 # Create a namespace for testing
