@@ -8,10 +8,8 @@ ORCHESTRATOR_CONFIGMAP="gorch_cm.yaml"
 GUARDRAILS_TLS_SECRET="gorch_tls.yaml"
 GUARDRAILS_ORCHESTRATOR="gorch.yaml"
 
-# Set the provider image for substitution
 export PROVIDER_IMAGE=
 
-# Function to wait for pods to be ready
 wait_for_pods() {
     local namespace=$1
     local label_selector=$2
@@ -60,7 +58,7 @@ echo "Patching GuardrailsOrchestrator deployment to remove runAsNonRoot security
 kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='strategic' -p='{"spec":{"template":{"spec":{"securityContext":{"runAsNonRoot":false},"containers":[{"name":"guardrails-orchestrator","securityContext":{"runAsNonRoot":false}}]}}}}'
 
 # Restart the rollout to apply the patch
-echo "Restarting deployment rollout to apply security context changes..."
+echo "Restarting deployment rollout to apply security context changes..."/
 kubectl rollout restart deployment/guardrails-orchestrator -n "$NAMESPACE"
 
 sleep 50
