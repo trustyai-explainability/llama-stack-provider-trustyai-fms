@@ -56,7 +56,14 @@ kubectl apply -f ${BASE_PATH}/${ORCHESTRATOR_CONFIGMAP} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_TLS_SECRET} -n "$NAMESPACE"
 kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 
-sleep 60
+# Wait a moment for the deployment to be created
+sleep 10
+
+# Patch the deployment to remove runAsNonRoot security context
+echo "Patching GuardrailsOrchestrator deployment to remove runAsNonRoot security context..."
+kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='merge' -p='{"spec":{"template":{"spec":{"securityContext":null,"containers":[{"name":"guardrails-orchestrator","securityContext":null}]}}}}'
+
+sleep 50
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"
 
 # Deploy the LlamaStackDistribution with image substitution
