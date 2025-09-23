@@ -61,7 +61,7 @@ sleep 10
 
 # Patch the deployment to remove runAsNonRoot security context
 echo "Patching GuardrailsOrchestrator deployment to remove runAsNonRoot security context..."
-kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='merge' -p='{"spec":{"template":{"spec":{"securityContext":null,"containers":[{"name":"guardrails-orchestrator","securityContext":null}]}}}}'
+kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/securityContext/runAsNonRoot"}]'
 
 sleep 50
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"
