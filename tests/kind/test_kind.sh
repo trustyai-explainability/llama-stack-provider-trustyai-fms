@@ -63,7 +63,13 @@ echo "Restarting deployment rollout to apply security context changes..."
 kubectl rollout restart deployment/guardrails-orchestrator -n "$NAMESPACE"
 
 sleep 50
-wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"
+
+# Check if the pods are ready, and if not, get logs for debugging
+if ! wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"; then
+    echo "GuardrailsOrchestrator failed to start. Collecting logs for debugging..."
+    kubectl logs -l app.kubernetes.io/name=guardrails-orchestrator -c guardrails-orchestrator -n "$NAMESPACE" --tail=50 || echo "No logs available"
+    exit 1
+fi
 
 # Deploy the LlamaStackDistribution with image substitution
 envsubst < ${BASE_PATH}/${LLAMA_STACK_DISTRIBUTION} | kubectl apply -f - -n "$NAMESPACE"
