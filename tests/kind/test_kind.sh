@@ -54,9 +54,13 @@ kubectl apply -f ${BASE_PATH}/${GUARDRAILS_ORCHESTRATOR} -n "$NAMESPACE"
 # Wait a moment for the deployment to be created
 sleep 10
 
-# Patch the deployment to remove runAsNonRoot security context
+# Patch the deployment to remove runAsNonRoot security context at both pod and container level
 echo "Patching GuardrailsOrchestrator deployment to remove runAsNonRoot security context..."
-kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='strategic' -p='{"spec":{"template":{"spec":{"securityContext":{"runAsNonRoot":false}}}}}'
+kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='strategic' -p='{"spec":{"template":{"spec":{"securityContext":{"runAsNonRoot":false},"containers":[{"name":"guardrails-orchestrator","securityContext":{"runAsNonRoot":false}}]}}}}'
+
+# Restart the rollout to apply the patch
+echo "Restarting deployment rollout to apply security context changes..."
+kubectl rollout restart deployment/guardrails-orchestrator -n "$NAMESPACE"
 
 sleep 50
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"
