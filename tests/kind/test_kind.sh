@@ -72,6 +72,17 @@ fi
 
 # Deploy the LlamaStackDistribution with image substitution
 envsubst < ${BASE_PATH}/${LLAMA_STACK_DISTRIBUTION} | kubectl apply -f - -n "$NAMESPACE"
-wait_for_pods "test" "app.kubernetes.io/name=llamastack-custom-distribution" 60 "LlamaStackDistribution"
+
+# Check if the pods are ready, and if not, get logs for debugging
+if ! wait_for_pods "test" "app.kubernetes.io/name=llamastack-custom-distribution" 300 "LlamaStackDistribution"; then
+    echo "LlamaStackDistribution failed to start. Collecting debugging information..."
+    echo "Pod status:"
+    kubectl get pods -l app.kubernetes.io/name=llamastack-custom-distribution -n "$NAMESPACE"
+    echo "Pod description:"
+    kubectl describe pods -l app.kubernetes.io/name=llamastack-custom-distribution -n "$NAMESPACE"
+    echo "Pod logs:"
+    kubectl logs -l app.kubernetes.io/name=llamastack-custom-distribution -n "$NAMESPACE" --tail=50 --all-containers=true || echo "No logs available"
+    exit 1
+fi
 
 
