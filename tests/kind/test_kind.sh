@@ -72,6 +72,6 @@ fi
 
 # Deploy the LlamaStackDistribution with image substitution
 envsubst < ${BASE_PATH}/${LLAMA_STACK_DISTRIBUTION} | kubectl apply -f - -n "$NAMESPACE"
-wait_for_pods "llamastack" "app.kubernetes.io/name=llamastack-custom-distribution" 60 "LlamaStackDistribution"
+wait_for_pods "test" "app.kubernetes.io/name=llamastack-custom-distribution" 60 "LlamaStackDistribution"
 
 
