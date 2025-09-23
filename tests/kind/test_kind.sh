@@ -31,11 +31,6 @@ wait_for_pods() {
 # Create a namespace for testing
 kubectl create namespace "$NAMESPACE"
 
-# Configure Pod Security Standards for the test namespace
-kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/enforce=privileged --overwrite
-kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/audit=privileged --overwrite
-kubectl label namespace "$NAMESPACE" pod-security.kubernetes.io/warn=privileged --overwrite
-
 # Deploy the vLLM emulator
 kubectl apply -f ${BASE_PATH}/${VLLM_EMULATOR} -n "$NAMESPACE"
 wait_for_pods "$NAMESPACE" "app=vllm-emulator" 300 "vLLM emulator"
@@ -61,7 +56,7 @@ sleep 10
 
 # Patch the deployment to remove runAsNonRoot security context
 echo "Patching GuardrailsOrchestrator deployment to remove runAsNonRoot security context..."
-kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='json' -p='[{"op": "remove", "path": "/spec/template/spec/securityContext/runAsNonRoot"}]'
+kubectl patch deployment guardrails-orchestrator -n "$NAMESPACE" --type='strategic' -p='{"spec":{"template":{"spec":{"securityContext":{"runAsNonRoot":false}}}}}'
 
 sleep 50
 wait_for_pods "$NAMESPACE" "app.kubernetes.io/name=guardrails-orchestrator" 60 "GuardrailsOrchestrator"
