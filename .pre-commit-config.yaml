@@ -2,23 +2,31 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.13.1
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
+        types_or: [python, pyi]
+        files: ^(llama_stack_provider_trustyai_fms/|tests/).*\.(py)$
       - id: ruff-format
+        types_or: [python, pyi]
+        files: ^(llama_stack_provider_trustyai_fms/|tests/).*\.(py)$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        files: \.(py|ipynb|md)$
       - id: end-of-file-fixer
+        files: \.(py|ipynb|md)$
       - id: check-yaml
         args: [--allow-multiple-documents]
+        files: \.ya?ml$
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-docstring-first
+        files: ^(llama_stack_provider_trustyai_fms/|tests/).*\.(py)$
 
   - repo: local
     hooks:
