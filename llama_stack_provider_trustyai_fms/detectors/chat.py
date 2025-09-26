@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, cast
 
 from llama_stack.apis.inference import Message
 from llama_stack.apis.safety import RunShieldResponse
+
 from ..config import ChatDetectorConfig
 from .base import (
     BaseDetector,
@@ -16,11 +17,11 @@ from .base import (
 )
 
 # Type aliases for better readability
-ChatMessage = Dict[
+ChatMessage = dict[
     str, Any
 ]  # Changed from Dict[str, str] to Dict[str, Any] to handle complex content
-ChatRequest = Dict[str, Any]
-DetectorResponse = List[Dict[str, Any]]
+ChatRequest = dict[str, Any]
+DetectorResponse = list[dict[str, Any]]
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +36,13 @@ class ChatDetectorError(DetectorError):
 class ChatDetectionMetadata:
     """Structured metadata for chat detections"""
 
-    risk_name: Optional[str] = None
-    risk_definition: Optional[str] = None
-    additional_metadata: Optional[Dict[str, Any]] = None
+    risk_name: str | None = None
+    risk_definition: str | None = None
+    additional_metadata: dict[str, Any] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metadata to dictionary format"""
-        result: Dict[str, Any] = {}  # Fixed the type annotation here
+        result: dict[str, Any] = {}  # Fixed the type annotation here
         if self.risk_name:
             result["risk_name"] = self.risk_name
         if self.risk_definition:
@@ -64,7 +65,7 @@ class ChatDetector(BaseDetector):
         self.config: ChatDetectorConfig = config
         logger.info(f"Initialized ChatDetector with config: {vars(config)}")
 
-    def _extract_detector_params(self) -> Dict[str, Any]:
+    def _extract_detector_params(self) -> dict[str, Any]:
         """Extract non-null detector parameters"""
         if not self.config.detector_params:
             return {}
@@ -76,11 +77,11 @@ class ChatDetector(BaseDetector):
         return params
 
     def _prepare_chat_request(
-        self, messages: List[ChatMessage], params: Optional[Dict[str, Any]] = None
+        self, messages: list[ChatMessage], params: dict[str, Any] | None = None
     ) -> ChatRequest:
         """Prepare the request based on API mode"""
         # Format messages for detector API
-        formatted_messages: List[Dict[str, str]] = []  # Explicitly typed
+        formatted_messages: list[dict[str, str]] = []  # Explicitly typed
         for msg in messages:
             formatted_msg = {
                 "content": str(msg.get("content", "")),  # Ensure string type
@@ -89,12 +90,12 @@ class ChatDetector(BaseDetector):
             formatted_messages.append(formatted_msg)
 
         if self.config.use_orchestrator_api:
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "messages": formatted_messages
             }  # Explicitly typed
 
             # Initialize detector_config to avoid None
-            detector_config: Dict[str, Any] = {}  # Explicitly typed
+            detector_config: dict[str, Any] = {}  # Explicitly typed
 
             # NEW STRUCTURE: Check for top-level detectors first
             if hasattr(self.config, "detectors") and self.config.detectors:
@@ -194,8 +195,8 @@ class ChatDetector(BaseDetector):
 
     async def _call_detector_api(
         self,
-        messages: List[ChatMessage],
-        params: Optional[Dict[str, Any]] = None,
+        messages: list[ChatMessage],
+        params: dict[str, Any] | None = None,
     ) -> DetectorResponse:
         """Call chat detector API with proper endpoint selection"""
         try:
@@ -215,7 +216,7 @@ class ChatDetector(BaseDetector):
                 f"Chat detector API call failed: {str(e)}"
             ) from e
 
-    def _extract_detections(self, response: Dict[str, Any]) -> DetectorResponse:
+    def _extract_detections(self, response: dict[str, Any]) -> DetectorResponse:
         """Extract detections from API response"""
         if not response:
             logger.debug("Empty response received")
@@ -253,9 +254,9 @@ class ChatDetector(BaseDetector):
         return []
 
     def _process_detection(
-        self, detection: Dict[str, Any]
-    ) -> Tuple[
-        Optional[DetectionResult], float
+        self, detection: dict[str, Any]
+    ) -> tuple[
+        DetectionResult | None, float
     ]:  # Changed return type to match base class
         """Process detection result and validate against threshold"""
         score = detection.get("score", 0.0)  # Default to 0.0 if score is missing
@@ -291,8 +292,8 @@ class ChatDetector(BaseDetector):
     async def _run_shield_impl(
         self,
         shield_id: str,
-        messages: List[Message],
-        params: Optional[Dict[str, Any]] = None,
+        messages: list[Message],
+        params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Implementation of shield checks for chat messages"""
         try:
@@ -302,7 +303,7 @@ class ChatDetector(BaseDetector):
             logger.info(f"Processing {len(messages)} message(s)")
 
             # Convert messages keeping only necessary fields
-            chat_messages: List[ChatMessage] = []  # Explicitly typed
+            chat_messages: list[ChatMessage] = []  # Explicitly typed
             for msg in messages:
                 message_dict: ChatMessage = {"content": msg.content, "role": msg.role}
                 # Preserve type if present for internal processing

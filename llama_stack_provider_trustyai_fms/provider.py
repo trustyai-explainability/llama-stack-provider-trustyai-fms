@@ -1,14 +1,14 @@
 import logging
 
-# Add logging at the top
-logger = logging.getLogger(__name__)
-
 from llama_stack.providers.datatypes import (
-    ProviderSpec,
-    Api,
     AdapterSpec,
+    Api,
+    ProviderSpec,
     remote_provider_spec,
 )
+
+# Add logging at the top
+logger = logging.getLogger(__name__)
 
 
 def get_provider_spec() -> ProviderSpec:
