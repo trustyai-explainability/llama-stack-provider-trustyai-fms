@@ -1557,9 +1557,8 @@ class DetectorProvider(Safety, Shields):
                         continue
 
                     # Extract data
-                    assert isinstance(result, dict), (
-                        "Expected result to be a dictionary"
-                    )
+                    if not isinstance(result, dict):
+                        raise TypeError("Expected result to be a dictionary")
                     message_results.append(result["result"])
 
                     # Update aggregate metrics
@@ -1652,9 +1651,8 @@ class DetectorProvider(Safety, Shields):
                         continue
 
                     # Extract data
-                    assert isinstance(result, dict), (
-                        "Expected result to be a dictionary"
-                    )
+                    if not isinstance(result, dict):
+                        raise TypeError("Expected result to be a dictionary")
                     message_results.append(result["result"])
 
                     # Update aggregate metrics
