@@ -4,14 +4,14 @@ import asyncio
 import datetime
 import logging
 import random
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum, StrEnum, auto
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, cast
+from enum import Enum, auto
+from typing import Any, ClassVar, cast
 from urllib.parse import urlparse
-import uuid
-import httpx
 
+import httpx
 from llama_stack.apis.inference import (
     CompletionMessage,
     Message,
@@ -27,17 +27,20 @@ from llama_stack.apis.safety import (
     ShieldStore,
     ViolationLevel,
 )
+
 try:
     from llama_stack.apis.safety import ModerationObject, ModerationObjectResults
+
     _HAS_MODERATION = True
 except ImportError:
     _HAS_MODERATION = False
 from llama_stack.apis.shields import ListShieldsResponse, Shield, Shields
 from llama_stack.providers.datatypes import ShieldsProtocolPrivate
+
 from ..config import (
     BaseDetectorConfig,
-    ContentDetectorConfig,
     ChatDetectorConfig,
+    ContentDetectorConfig,
     DetectorParams,
     EndpointType,
 )
@@ -51,6 +54,7 @@ if not _HAS_MODERATION:
         "The /v1/openai/v1/moderations endpoint will not be available. "
         "Upgrade to llama-stack >= 0.2.18 for moderation support."
     )
+
 
 # Custom exceptions
 class DetectorError(Exception):
@@ -94,10 +98,10 @@ class DetectorAuthError(DetectorError):
 
 
 # Type aliases
-MessageDict = Dict[str, Any]
-DetectorResponse = Dict[str, Any]
-Headers = Dict[str, str]
-RequestPayload = Dict[str, Any]
+MessageDict = dict[str, Any]
+DetectorResponse = dict[str, Any]
+Headers = dict[str, str]
+RequestPayload = dict[str, Any]
 
 
 class MessageTypes(Enum):
@@ -125,9 +129,9 @@ class DetectionResult:
     text: str = ""
     start: int = 0
     end: int = 0
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation"""
         return {
             "detection": self.detection,
@@ -140,6 +144,7 @@ class DetectionResult:
             **({"metadata": self.metadata} if self.metadata else {}),
         }
 
+
 class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     """Base class for all safety detectors"""
 
@@ -149,9 +154,9 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     def __init__(self, config: BaseDetectorConfig) -> None:
         """Initialize detector with configuration"""
         self.config = config
-        self.registered_shields: List[Shield] = []
+        self.registered_shields: list[Shield] = []
         self.score_threshold: float = config.confidence_threshold
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: httpx.AsyncClient | None = None
         self._shield_store: ShieldStore = SimpleShieldStore()
         self._validate_config()
 
@@ -177,15 +182,17 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def initialize(self) -> None:
         """Initialize detector resources"""
         logger.info(f"Initializing {self.__class__.__name__}")
-        
+
         # Get SSL configuration from config
         ssl_config = {}
-        if hasattr(self.config, 'get_ssl_config'):
+        if hasattr(self.config, "get_ssl_config"):
             ssl_config = self.config.get_ssl_config()
-        
-         # Add debug logging here
+
+        # Add debug logging here
         logger.debug(f"[DEBUG] SSL config for {self.config.detector_id}: {ssl_config}")
-        logger.debug(f"[DEBUG] ssl_cert_path: {getattr(self.config, 'ssl_cert_path', None)}")
+        logger.debug(
+            f"[DEBUG] ssl_cert_path: {getattr(self.config, 'ssl_cert_path', None)}"
+        )
         logger.debug(f"[DEBUG] verify_ssl: {getattr(self.config, 'verify_ssl', None)}")
 
         # Create HTTP client with SSL configuration
@@ -195,7 +202,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
                 max_keepalive_connections=self.config.max_keepalive_connections,
                 max_connections=self.config.max_connections,
             ),
-            **ssl_config  # Apply SSL configuration here
+            **ssl_config,  # Apply SSL configuration here
         )
 
     async def shutdown(self) -> None:
@@ -242,7 +249,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
             )
         return is_supported
 
-    def _filter_messages(self, messages: List[Message]) -> List[Message]:
+    def _filter_messages(self, messages: list[Message]) -> list[Message]:
         """Filter messages based on configured message types"""
         return [msg for msg in messages if self._should_process_message(msg)]
 
@@ -286,9 +293,9 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         )
         return url
 
-    def _extract_detector_params(self) -> Dict[str, Any]:
+    def _extract_detector_params(self) -> dict[str, Any]:
         """Extract detector parameters from configuration"""
-        detector_params: Dict[str, Any] = {}
+        detector_params: dict[str, Any] = {}
 
         if (
             hasattr(self.config, "detector_params")
@@ -325,7 +332,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
             headers["detector-id"] = self.config.detector_id
 
         # Use the new get_auth_headers method from config
-        if hasattr(self.config, 'get_auth_headers'):
+        if hasattr(self.config, "get_auth_headers"):
             auth_headers = self.config.get_auth_headers()
             headers.update(auth_headers)
         elif self.config.auth_token:
@@ -334,7 +341,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         return headers
 
     def _prepare_request_payload(
-        self, messages: List[Message], params: Optional[Dict[str, Any]] = None
+        self, messages: list[Message], params: dict[str, Any] | None = None
     ) -> RequestPayload:
         """Prepare request payload based on endpoint type and orchestrator mode"""
         logger.debug(
@@ -348,7 +355,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
             # NEW STRUCTURE: Handle detectors at top level instead of under detector_params
             if hasattr(self.config, "detectors") and self.config.detectors:
                 # Process the new structure with detectors at top level
-                detector_config: Dict[str, Any] = {}
+                detector_config: dict[str, Any] = {}
                 for detector_id, det_config in self.config.detectors.items():
                     detector_config[detector_id] = det_config.get("detector_params", {})
 
@@ -456,8 +463,8 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def _make_request(
         self,
         request: RequestPayload,
-        headers: Optional[Headers] = None,
-        timeout: Optional[float] = None,
+        headers: Headers | None = None,
+        timeout: float | None = None,
     ) -> DetectorResponse:
         """Make HTTP request with error handling and retries"""
         if not self._http_client:
@@ -496,7 +503,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
                     if attempt == self.config.max_retries - 1:
                         error_details = {
                             "timestamp": datetime.datetime.now(
-                                datetime.timezone.utc
+                                datetime.UTC
                             ).isoformat(),
                             "service": urlparse(url).netloc,
                             "detector_id": self.config.detector_id,
@@ -517,7 +524,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
 
                     # Continue with backoff if we have more retries
                     logger.warning(
-                        f"Service unavailable (attempt {attempt+1}/{self.config.max_retries}), retrying..."
+                        f"Service unavailable (attempt {attempt + 1}/{self.config.max_retries}), retrying..."
                     )
                 else:
                     # SUCCESS PATH: Return immediately for successful responses
@@ -551,8 +558,8 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         )
 
     def _process_detection(
-        self, detection: Dict[str, Any]
-    ) -> Tuple[Optional[DetectionResult], float]:
+        self, detection: dict[str, Any]
+    ) -> tuple[DetectionResult | None, float]:
         """Process detection result and return both result and score"""
         score = detection.get("score", 0.0)
 
@@ -602,8 +609,8 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def _run_shield_impl(
         self,
         shield_id: str,
-        messages: List[Message],
-        params: Optional[Dict[str, Any]] = None,
+        messages: list[Message],
+        params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Implementation specific shield running logic"""
         pass
@@ -611,8 +618,8 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def run_shield(
         self,
         shield_id: str,
-        messages: List[Message],
-        params: Optional[Dict[str, Any]] = None,
+        messages: list[Message],
+        params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Run safety checks using configured shield"""
         try:
@@ -680,14 +687,14 @@ class SimpleShieldStore(ShieldStore):
     """Simplified shield store with caching"""
 
     def __init__(self):
-        self._shields: Dict[str, Shield] = {}
+        self._shields: dict[str, Shield] = {}
         self._detector_configs = {}
         self._pending_configs = {}  # Add this to store configs before initialization
         self._store_id = id(self)
         self._initialized = False
         self._lock = asyncio.Lock()  # Add lock
         logger.info(f"Created SimpleShieldStore: {self._store_id}")
-        
+
     async def register_detector_config(self, detector_id: str, config: Any) -> None:
         """Register detector configuration"""
         async with self._lock:
@@ -700,7 +707,7 @@ class SimpleShieldStore(ShieldStore):
             )
 
     async def update_shield_params(
-        self, shield_id: str, params: Dict[str, Any]
+        self, shield_id: str, params: dict[str, Any]
     ) -> None:
         """Update shield parameters in the store"""
         shield = self._shields.get(shield_id)
@@ -813,7 +820,7 @@ class SimpleShieldStore(ShieldStore):
             )
 
     async def create_dynamic_shield(
-        self, shield_id: str, params: Dict[str, Any]
+        self, shield_id: str, params: dict[str, Any]
     ) -> None:
         """Create a dynamic shield configuration from API parameters"""
         # Extract shield configuration from API params
@@ -940,14 +947,14 @@ class DetectorProvider(Safety, Shields):
     """Provider for managing safety detectors and shields"""
 
     def __init__(
-        self, detectors: Dict[str, BaseDetector], config: Optional[Any] = None
+        self, detectors: dict[str, BaseDetector], config: Any | None = None
     ) -> None:
         self.detectors = detectors
         self._shield_store: ShieldStore = SimpleShieldStore()
         if config:
             self._shield_store._provider_config = config
 
-        self._shields: Dict[str, Shield] = {}
+        self._shields: dict[str, Shield] = {}
         self._initialized = False
         self._provider_id = id(self)
         self._detector_key_to_id = {}  # Add mapping dict
@@ -1057,7 +1064,7 @@ class DetectorProvider(Safety, Shields):
                 await detector.initialize()
 
             # Create shields using the shield store
-            for detector_id, detector in self.detectors.items():
+            for _detector_id, detector in self.detectors.items():
                 config_id = detector.config.detector_id
                 shield = await self._shield_store.get_shield(config_id)
 
@@ -1245,8 +1252,8 @@ class DetectorProvider(Safety, Shields):
                 config = self._shield_store._detector_configs.get(shield_identifier)
                 if config:
                     # Import detector classes
-                    from ..detectors.content import ContentDetector
                     from ..detectors.chat import ChatDetector
+                    from ..detectors.content import ContentDetector
 
                     # Create detector instance based on type
                     if config.is_chat:
@@ -1277,13 +1284,13 @@ class DetectorProvider(Safety, Shields):
                 )
                 raise DetectorValidationError(
                     f"Failed to create dynamic shield {shield_identifier}: {e}"
-                )
+                ) from e
 
         raise DetectorValidationError(
             f"Cannot create shield '{shield_identifier}': no detector configuration found and no API parameters provided"
         )
 
-    def _generate_shield_params(self, detector) -> Dict[str, Any]:
+    def _generate_shield_params(self, detector) -> dict[str, Any]:
         """Generate shield parameters from detector config"""
         shield_id = detector.config.detector_id
 
@@ -1335,8 +1342,8 @@ class DetectorProvider(Safety, Shields):
     async def run_shield(
         self,
         shield_id: str,
-        messages: List[Message],
-        params: Optional[Dict[str, Any]] = None,
+        messages: list[Message],
+        params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Run shield against messages with enhanced composite handling"""
         try:
@@ -1550,9 +1557,9 @@ class DetectorProvider(Safety, Shields):
                         continue
 
                     # Extract data
-                    assert isinstance(
-                        result, dict
-                    ), "Expected result to be a dictionary"
+                    assert isinstance(result, dict), (
+                        "Expected result to be a dictionary"
+                    )
                     message_results.append(result["result"])
 
                     # Update aggregate metrics
@@ -1645,9 +1652,9 @@ class DetectorProvider(Safety, Shields):
                         continue
 
                     # Extract data
-                    assert isinstance(
-                        result, dict
-                    ), "Expected result to be a dictionary"
+                    assert isinstance(result, dict), (
+                        "Expected result to be a dictionary"
+                    )
                     message_results.append(result["result"])
 
                     # Update aggregate metrics
@@ -1757,8 +1764,12 @@ class DetectorProvider(Safety, Shields):
                     },
                 )
             )
+
     if _HAS_MODERATION:
-        async def run_moderation(self, input: str | list[str], model: str) -> ModerationObject:
+
+        async def run_moderation(
+            self, input: str | list[str], model: str
+        ) -> ModerationObject:
             """
             Runs moderation for each input message.
             Returns a ModerationObject with one ModerationObjectResults per input.
@@ -1776,7 +1787,11 @@ class DetectorProvider(Safety, Shields):
 
                 messages = self._convert_input_to_messages(texts)
                 shield_response = await self.run_shield(shield_id, messages)
-                metadata = shield_response.violation.metadata if shield_response.violation and shield_response.violation.metadata else {}
+                metadata = (
+                    shield_response.violation.metadata
+                    if shield_response.violation and shield_response.violation.metadata
+                    else {}
+                )
                 results_metadata = metadata.get("results", [])
                 # Index results by message_index for O(1) lookup
                 results_by_index = {r.get("message_index"): r for r in results_metadata}
@@ -1805,7 +1820,7 @@ class DetectorProvider(Safety, Shields):
                             categories=categories,
                             category_applied_input_types=category_applied_input_types,
                             category_scores=category_scores,
-                            user_message=msg.content,  
+                            user_message=msg.content,
                             metadata=meta,
                         )
                     )
@@ -1825,29 +1840,34 @@ class DetectorProvider(Safety, Shields):
                             categories={},
                             category_applied_input_types={},
                             category_scores={},
-                            user_message=msg if isinstance(msg, str) else getattr(msg, "content", str(msg)),
+                            user_message=msg
+                            if isinstance(msg, str)
+                            else getattr(msg, "content", str(msg)),
                             metadata={"error": str(e), "status": "error"},
                         )
                         for msg in input_list
                     ],
                 )
-    
+
     async def _get_shield_id_from_model(self, model: str) -> str:
         """Map model name to shield_id using provider_resource_id."""
         shields_response = await self.list_shields()
         matching_shields = [
-            shield.identifier 
-            for shield in shields_response.data 
+            shield.identifier
+            for shield in shields_response.data
             if shield.provider_resource_id == model
         ]
         if not matching_shields:
-            raise ValueError(f"No shield found for model '{model}'. Available shields: {[s.identifier for s in shields_response.data]}")
+            raise ValueError(
+                f"No shield found for model '{model}'. Available shields: {[s.identifier for s in shields_response.data]}"
+            )
         if len(matching_shields) > 1:
-            raise ValueError(f"Multiple shields found for model '{model}': {matching_shields}")
+            raise ValueError(
+                f"Multiple shields found for model '{model}': {matching_shields}"
+            )
         return matching_shields[0]
-    
-    
-    def _convert_input_to_messages(self, texts: str | list[str]) -> List[Message]:
+
+    def _convert_input_to_messages(self, texts: str | list[str]) -> list[Message]:
         """Convert string input(s) to UserMessage objects."""
         if isinstance(texts, str):
             inputs = [texts]
@@ -1855,7 +1875,6 @@ class DetectorProvider(Safety, Shields):
             inputs = texts
         return [UserMessage(content=text) for text in inputs]
 
-    
     async def shutdown(self) -> None:
         """Cleanup resources"""
         logger.info(f"Provider {self._provider_id} shutting down")

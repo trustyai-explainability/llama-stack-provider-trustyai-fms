@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 from llama_stack.apis.inference import Message
 from llama_stack.apis.safety import RunShieldResponse
+
 from ..config import (
     ContentDetectorConfig,
 )
@@ -17,8 +18,8 @@ from .base import (
 )
 
 # Type aliases for better readability
-ContentRequest = Dict[str, Any]
-DetectorResponse = List[Dict[str, Any]]
+ContentRequest = dict[str, Any]
+DetectorResponse = list[dict[str, Any]]
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class ContentDetector(BaseDetector):
         self.config: ContentDetectorConfig = config
         logger.info(f"Initialized ContentDetector with config: {vars(config)}")
 
-    def _extract_detector_params(self) -> Dict[str, Any]:
+    def _extract_detector_params(self) -> dict[str, Any]:
         """Extract detector parameters with support for generic format"""
         if not self.config.detector_params:
             return {}
@@ -53,16 +54,16 @@ class ContentDetector(BaseDetector):
         return params
 
     def _prepare_content_request(
-        self, content: str, params: Optional[Dict[str, Any]] = None
+        self, content: str, params: dict[str, Any] | None = None
     ) -> ContentRequest:
         """Prepare the request based on API mode"""
 
         if self.config.use_orchestrator_api:
-            payload: Dict[str, Any] = {"content": content}  # Always use singular form
+            payload: dict[str, Any] = {"content": content}  # Always use singular form
 
             # NEW STRUCTURE: Check for top-level detectors first
             if hasattr(self.config, "detectors") and self.config.detectors:
-                detector_config: Dict[str, Any] = {}
+                detector_config: dict[str, Any] = {}
                 for detector_id, det_config in self.config.detectors.items():
                     detector_config[detector_id] = det_config.get("detector_params", {})
                 payload["detectors"] = detector_config
@@ -94,7 +95,7 @@ class ContentDetector(BaseDetector):
                 "detector_params": detector_params if detector_params else params or {},
             }
 
-    def _extract_detections(self, response: Dict[str, Any]) -> DetectorResponse:
+    def _extract_detections(self, response: dict[str, Any]) -> DetectorResponse:
         """Extract detections from API response"""
         if not response:
             logger.debug("Empty response received")
@@ -103,13 +104,13 @@ class ContentDetector(BaseDetector):
         if self.config.use_orchestrator_api:
             detections = response.get("detections", [])
             logger.debug(f"Orchestrator detections: {detections}")
-            return cast(List[Dict[str, Any]], detections)
+            return cast(list[dict[str, Any]], detections)
 
         # Direct API returns a list of lists where inner list contains detections
         if isinstance(response, list) and response:
             detections = response[0] if isinstance(response[0], list) else [response[0]]
             logger.debug(f"Direct API detections: {detections}")
-            return cast(List[Dict[str, Any]], detections)
+            return cast(list[dict[str, Any]], detections)
 
         logger.debug("No detections found in response")
         return []
@@ -117,7 +118,7 @@ class ContentDetector(BaseDetector):
     async def _call_detector_api(
         self,
         content: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ) -> DetectorResponse:
         """Call detector API with proper endpoint selection"""
         try:
@@ -138,8 +139,8 @@ class ContentDetector(BaseDetector):
             ) from e
 
     def _process_detection(
-        self, detection: Dict[str, Any]
-    ) -> tuple[Optional[DetectionResult], float]:
+        self, detection: dict[str, Any]
+    ) -> tuple[DetectionResult | None, float]:
         """Process detection result and validate against threshold"""
         if not detection.get("score"):
             logger.warning("Detection missing score field")
@@ -163,8 +164,8 @@ class ContentDetector(BaseDetector):
     async def _run_shield_impl(
         self,
         shield_id: str,
-        messages: List[Message],
-        params: Optional[Dict[str, Any]] = None,
+        messages: list[Message],
+        params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Implementation of shield checks for content messages"""
         try:

@@ -1,6 +1,6 @@
 # `trustyai_fms`: out-of-tree remote safety provider for llama stack
 
-This repo implements [FMS Guardrails Orchestrator](https://github.com/foundation-model-stack/fms-guardrails-orchestrator) together with community detectors: 
+This repo implements [FMS Guardrails Orchestrator](https://github.com/foundation-model-stack/fms-guardrails-orchestrator) together with community detectors:
 
 - [regex detectors](https://github.com/trustyai-explainability/guardrails-regex-detector)
 - [Hugging Face content detectors](https://github.com/trustyai-explainability/guardrails-detectors)
@@ -42,16 +42,16 @@ as an out-of-tree remote safety provider for [llama stack](https://github.com/me
 
 ## Running demos
 
-To run the demos in full, there is a need to deploy the orchestrator and detectors on Openshift, unless you have access to the necessary routes of the deployed services. If you do not have access to these routes, follow 
-[Part A below](#part-a-openshift-setup-for-the-orchestrator-and-detectors) to set them up. 
+To run the demos in full, there is a need to deploy the orchestrator and detectors on Openshift, unless you have access to the necessary routes of the deployed services. If you do not have access to these routes, follow
+[Part A below](#part-a-openshift-setup-for-the-orchestrator-and-detectors) to set them up.
 
 Subsequently, to create a local llama stack distribution, follow [Part B below](#part-b-setup-to-create-a-local-llama-stack-distribution-with-external-trustyai_fms-remote-safety-provider)
 
 ### Part A. Openshift setup for the orchestrator and detectors
 
-The demos require deploying the orchestrator and detectors on Openshift. 
+The demos require deploying the orchestrator and detectors on Openshift.
 
-The following operators are required in the Openshift cluster: 
+The following operators are required in the Openshift cluster:
 
 __GPU__ -- follow [this guide](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/steps-overview.html) and install:
 - Node Feature Discovery Operator (4.17.0-202505061137 provided by Red Hat):
@@ -59,10 +59,10 @@ __GPU__ -- follow [this guide](https://docs.nvidia.com/datacenter/cloud-native/o
 - NVIDIA GPU Operator (25.3.0 provided by NVIDIA Corporation)
     - ensure to create an instance of ClusterPolicy using the ClusterPolicy tab
 
-__Model Serving__: 
+__Model Serving__:
 - Red Hat OpenShift Service Mesh 2 (2.6.7-0 provided by Red Hat, Inc.)
 - Red Hat OpenShift Serverless (1.35.1 provided by Red Hat)
-__Authentication__: 
+__Authentication__:
 - Red Hat - Authorino Operator (1.2.1 provided by Red Hat)
 
 __AI Platform__:
@@ -80,14 +80,14 @@ __AI Platform__:
                     name: knative-serving
             ```
 
-Once the above steps are completed, 
+Once the above steps are completed,
 
 1. Create a new project
 ```bash
 oc new-project test
 ```
 
-2. Apply the manifests in the `openshift-manifests/` directory to deploy the orchestrator and detectors. 
+2. Apply the manifests in the `openshift-manifests/` directory to deploy the orchestrator and detectors.
 
 ```bash
 oc apply -k openshift-manifests/
@@ -118,7 +118,7 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-6. Pick a runtime configuration file from `runtime_configurations/` and run the stack: 
+6. Pick a runtime configuration file from `runtime_configurations/` and run the stack:
 
     a. __for the orchestrator API__:
 
@@ -126,7 +126,7 @@ pip install -e .
     llama stack run runtime_configurations/orchestrator_api.yaml --image-type=venv
     ```
 
-    Note that you might need to export the following environment variables: 
+    Note that you might need to export the following environment variables:
 
     ```bash
     export FMS_ORCHESTRATOR_URL="https://$(oc get routes guardrails-orchestrator-http -o jsonpath='{.spec.host}')"
@@ -138,7 +138,7 @@ pip install -e .
     llama stack run runtime_configurations/detector_api.yaml --image-type=venv
     ```
 
-    Not that you might need to export the following environment variables: 
+    Not that you might need to export the following environment variables:
 
     ```bash
     export FMS_CHAT_URL="http://$(oc get routes granite-2b-detector-route -o jsonpath='{.spec.host}')"
@@ -155,4 +155,3 @@ pip install -e .
     ```bash
     jupyter notebook noteboooks/trustyai-fms-detector-api.ipynb
     ```
-

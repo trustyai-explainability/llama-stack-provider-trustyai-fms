@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import builtins
+import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, model_validator
-
 from llama_stack.schema_utils import json_schema_type
-
-import os 
+from pydantic import BaseModel, Field, model_validator
 
 # Make sure to export all classes at the module level
 __all__ = [
@@ -32,7 +31,7 @@ class MessageType(Enum):
     COMPLETION = "completion"
 
     @classmethod
-    def as_set(cls) -> Set[str]:
+    def as_set(cls) -> set[str]:
         """Get all valid message types as a set"""
         return {member.value for member in cls}
 
@@ -71,27 +70,27 @@ class DetectorParams:
     """Flexible parameter container supporting nested structure and arbitrary parameters"""
 
     # Store all parameters in a single dictionary for maximum flexibility
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
 
     # Parameter categories for organization
-    model_params: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    kwargs: Dict[str, Any] = field(default_factory=dict)
+    model_params: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
     # Store detectors directly as an attribute (not in params) for orchestrator mode
-    _raw_detectors: Optional[Dict[str, Dict[str, Any]]] = None
+    _raw_detectors: dict[str, dict[str, Any]] | None = None
 
     # Standard parameters kept for backward compatibility
     @property
-    def regex(self) -> Optional[List[str]]:
+    def regex(self) -> list[str] | None:
         return self.params.get("regex")
 
     @regex.setter
-    def regex(self, value: List[str]) -> None:
+    def regex(self, value: list[str]) -> None:
         self.params["regex"] = value
 
     @property
-    def temperature(self) -> Optional[float]:
+    def temperature(self) -> float | None:
         return self.model_params.get("temperature") or self.params.get("temperature")
 
     @temperature.setter
@@ -99,7 +98,7 @@ class DetectorParams:
         self.model_params["temperature"] = value
 
     @property
-    def risk_name(self) -> Optional[str]:
+    def risk_name(self) -> str | None:
         return self.metadata.get("risk_name") or self.params.get("risk_name")
 
     @risk_name.setter
@@ -107,7 +106,7 @@ class DetectorParams:
         self.metadata["risk_name"] = value
 
     @property
-    def risk_definition(self) -> Optional[str]:
+    def risk_definition(self) -> str | None:
         return self.metadata.get("risk_definition") or self.params.get(
             "risk_definition"
         )
@@ -117,7 +116,7 @@ class DetectorParams:
         self.metadata["risk_definition"] = value
 
     @property
-    def orchestrator_detectors(self) -> Dict[str, Dict[str, Any]]:
+    def orchestrator_detectors(self) -> dict[str, dict[str, Any]]:
         """Return detectors in the format required by orchestrator API"""
         if (
             not hasattr(self, "_detectors") or not self._detectors
@@ -144,7 +143,7 @@ class DetectorParams:
         return flattened
 
     @property
-    def formatted_detectors(self) -> Optional[Dict[str, Dict[str, Any]]]:
+    def formatted_detectors(self) -> dict[str, dict[str, Any]] | None:
         """Return detectors properly formatted for orchestrator API"""
         # Direct return for API usage - avoid calling other properties
         if hasattr(self, "_detectors") and self._detectors:
@@ -152,11 +151,11 @@ class DetectorParams:
         return None
 
     @formatted_detectors.setter
-    def formatted_detectors(self, value: Dict[str, Dict[str, Any]]) -> None:
+    def formatted_detectors(self, value: dict[str, dict[str, Any]]) -> None:
         self._detectors = value
 
     @property
-    def detectors(self) -> Optional[Dict[str, Dict[str, Any]]]:
+    def detectors(self) -> dict[str, dict[str, Any]] | None:
         """COMPATIBILITY: Returns the same as formatted_detectors to maintain API compatibility"""
         # Using a different implementation to avoid the redefinition error
         # while maintaining the same functionality
@@ -165,7 +164,7 @@ class DetectorParams:
         return self.orchestrator_detectors
 
     @detectors.setter
-    def detectors(self, value: Dict[str, Dict[str, Any]]) -> None:
+    def detectors(self, value: dict[str, dict[str, Any]]) -> None:
         """COMPATIBILITY: Set detectors while maintaining compatibility"""
         self._detectors = value
 
@@ -252,12 +251,12 @@ class DetectorParams:
         """Set a parameter value with smart categorization"""
         self.__setitem__(key, value)
 
-    def update(self, params: Dict[str, Any]) -> None:
+    def update(self, params: dict[str, Any]) -> None:
         """Update with multiple parameters, respecting categories"""
         for key, value in params.items():
             self.__setitem__(key, value)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert all parameters to a flat dictionary for API requests"""
         result = {}
 
@@ -271,7 +270,7 @@ class DetectorParams:
 
         return result
 
-    def to_categorized_dict(self) -> Dict[str, Any]:
+    def to_categorized_dict(self) -> dict[str, Any]:
         """Convert to a structured dictionary with categories preserved"""
         result = dict(self.params)
 
@@ -286,7 +285,7 @@ class DetectorParams:
 
         return result
 
-    def create_flattened_detector_configs(self) -> Dict[str, Dict[str, Any]]:
+    def create_flattened_detector_configs(self) -> dict[str, dict[str, Any]]:
         """Create flattened detector configurations for orchestrator mode.
         This removes the extra detector_params nesting that causes API errors.
         """
@@ -322,22 +321,28 @@ class BaseDetectorConfig:
 
     detector_id: str
     confidence_threshold: float = 0.5
-    message_types: Set[str] = field(default_factory=lambda: MessageType.as_set())
-    auth_token: Optional[str] = None
-    detector_params: Optional[DetectorParams] = None
+    message_types: builtins.set[str] = field(
+        default_factory=lambda: MessageType.as_set()
+    )
+    auth_token: str | None = None
+    detector_params: DetectorParams | None = None
 
     # URL fields directly on detector configs
-    detector_url: Optional[str] = None
-    orchestrator_url: Optional[str] = None
+    detector_url: str | None = None
+    orchestrator_url: str | None = None
 
     # SSL / TLS
-    verify_ssl: bool = field(default_factory=lambda: os.getenv('FMS_VERIFY_SSL', 'true').lower() != 'false')
-    ssl_cert_path: Optional[str] = field(default_factory=lambda: os.getenv('FMS_SSL_CERT_PATH'))
-    ssl_client_cert: Optional[str] = None
-    ssl_client_key: Optional[str] = None
-    
+    verify_ssl: bool = field(
+        default_factory=lambda: os.getenv("FMS_VERIFY_SSL", "true").lower() != "false"
+    )
+    ssl_cert_path: str | None = field(
+        default_factory=lambda: os.getenv("FMS_SSL_CERT_PATH")
+    )
+    ssl_client_cert: str | None = None
+    ssl_client_key: str | None = None
+
     # Flexible storage for any additional parameters
-    _extra_params: Dict[str, Any] = field(default_factory=dict)
+    _extra_params: dict[str, Any] = field(default_factory=dict)
 
     # Runtime execution parameters
     max_concurrency: int = 10  # Maximum concurrent API requests
@@ -347,30 +352,30 @@ class BaseDetectorConfig:
     max_keepalive_connections: int = 5  # Max number of keepalive connections
     max_connections: int = 10  # Max number of connections in the pool
 
-    def get_ssl_config(self) -> Dict[str, Any]:
+    def get_ssl_config(self) -> dict[str, Any]:
         """Get SSL configuration for HTTP clients (httpx/requests compatible)"""
         ssl_config = {}
-        
+
         if not self.verify_ssl:
-            ssl_config['verify'] = False
+            ssl_config["verify"] = False
         elif self.ssl_cert_path:
-            ssl_config['verify'] = self.ssl_cert_path
-        
+            ssl_config["verify"] = self.ssl_cert_path
+
         if self.ssl_client_cert:
             if self.ssl_client_key:
-                ssl_config['cert'] = (self.ssl_client_cert, self.ssl_client_key)
+                ssl_config["cert"] = (self.ssl_client_cert, self.ssl_client_key)
             else:
-                ssl_config['cert'] = self.ssl_client_cert
-                
+                ssl_config["cert"] = self.ssl_client_cert
+
         return ssl_config
 
-    def get_auth_headers(self) -> Dict[str, str]:
+    def get_auth_headers(self) -> dict[str, str]:
         """Get authentication headers for HTTP requests"""
         headers = {}
         if self.auth_token:
-            headers['Authorization'] = f'Bearer {self.auth_token}'
+            headers["Authorization"] = f"Bearer {self.auth_token}"
         return headers
-    
+
     @property
     def use_orchestrator_api(self) -> bool:
         """Determine if orchestrator API should be used"""
@@ -477,18 +482,22 @@ class ChatDetectorConfig(BaseDetectorConfig):
 class FMSSafetyProviderConfig(BaseModel):
     """Configuration for the FMS Safety Provider"""
 
-    shields: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    shields: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     # Rename _detectors to remove the leading underscore
-    detectors_internal: Dict[str, Union[ContentDetectorConfig, ChatDetectorConfig]] = (
-        Field(default_factory=dict, exclude=True)
+    detectors_internal: dict[str, ContentDetectorConfig | ChatDetectorConfig] = Field(
+        default_factory=dict, exclude=True
     )
 
     # Provider-level orchestrator URL (can be copied to shields if needed)
-    orchestrator_url: Optional[str] = None
-    verify_ssl: bool = Field(default_factory=lambda: os.getenv('FMS_VERIFY_SSL', 'true').lower() != 'false')
-    ssl_cert_path: Optional[str] = Field(default_factory=lambda: os.getenv('FMS_SSL_CERT_PATH'))
-    auth_token: Optional[str] = Field(default_factory=lambda: os.getenv('FMS_AUTH_TOKEN'))
+    orchestrator_url: str | None = None
+    verify_ssl: bool = Field(
+        default_factory=lambda: os.getenv("FMS_VERIFY_SSL", "true").lower() != "false"
+    )
+    ssl_cert_path: str | None = Field(
+        default_factory=lambda: os.getenv("FMS_SSL_CERT_PATH")
+    )
+    auth_token: str | None = Field(default_factory=lambda: os.getenv("FMS_AUTH_TOKEN"))
 
     class Config:
         arbitrary_types_allowed = True
@@ -546,14 +555,14 @@ class FMSSafetyProviderConfig(BaseModel):
                 # If no orchestrator_url in shield but provider has one, copy it
                 if self.orchestrator_url and "orchestrator_url" not in shield_config:
                     shield_config["orchestrator_url"] = self.orchestrator_url
-                if 'verify_ssl' not in shield_config:
-                    shield_config['verify_ssl'] = self.verify_ssl
-                
-                if 'ssl_cert_path' not in shield_config and self.ssl_cert_path:
-                    shield_config['ssl_cert_path'] = self.ssl_cert_path
-                
-                if 'auth_token' not in shield_config and self.auth_token:
-                    shield_config['auth_token'] = self.auth_token
+                if "verify_ssl" not in shield_config:
+                    shield_config["verify_ssl"] = self.verify_ssl
+
+                if "ssl_cert_path" not in shield_config and self.ssl_cert_path:
+                    shield_config["ssl_cert_path"] = self.ssl_cert_path
+
+                if "auth_token" not in shield_config and self.auth_token:
+                    shield_config["auth_token"] = self.auth_token
 
                 # Initialize detector_params with proper structure for nested detectors
                 detector_params_dict = shield_config.get("detector_params", {})
@@ -578,14 +587,14 @@ class FMSSafetyProviderConfig(BaseModel):
     @property
     def all_detectors(
         self,
-    ) -> Dict[str, Union[ContentDetectorConfig, ChatDetectorConfig]]:
+    ) -> dict[str, ContentDetectorConfig | ChatDetectorConfig]:
         """Get all detector configurations"""
         return self.detectors_internal
 
     # Update other methods to use detectors_internal instead of _detectors
     def get_detectors_by_type(
-        self, message_type: Union[str, MessageType]
-    ) -> Dict[str, Union[ContentDetectorConfig, ChatDetectorConfig]]:
+        self, message_type: str | MessageType
+    ) -> dict[str, ContentDetectorConfig | ChatDetectorConfig]:
         """Get detectors for a specific message type"""
         type_value = (
             message_type.value

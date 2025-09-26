@@ -1,15 +1,15 @@
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any
+
+# Import Safety API
+from llama_stack.apis.safety import Safety
+from llama_stack.providers.datatypes import Api
 
 # First import the provider spec to ensure registration
 from .provider import get_provider_spec
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-# Import Safety API
-from llama_stack.apis.safety import Safety
-from llama_stack.providers.datatypes import Api
 
 # Defer class imports by using a try-except block
 try:
@@ -30,10 +30,8 @@ try:
     )
 
     # Type aliases for better readability
-    ConfigType = Union[
-        ContentDetectorConfig, ChatDetectorConfig, FMSSafetyProviderConfig
-    ]
-    DetectorType = Union[BaseDetector, DetectorProvider]
+    ConfigType = ContentDetectorConfig | ChatDetectorConfig | FMSSafetyProviderConfig
+    DetectorType = BaseDetector | DetectorProvider
 except ImportError:
     # These will be imported later when actually needed
     pass
@@ -45,7 +43,7 @@ class DetectorConfigError(ValueError):
     pass
 
 
-async def create_fms_provider(config: Dict[str, Any]) -> Safety:
+async def create_fms_provider(config: dict[str, Any]) -> Safety:
     """Create FMS safety provider instance.
 
     Args:
@@ -63,11 +61,11 @@ async def create_fms_provider(config: Dict[str, Any]) -> Safety:
 
 async def get_adapter_impl(
     config: FMSSafetyProviderConfig,
-    deps: Dict[Api, Any],
+    deps: dict[Api, Any],
 ) -> DetectorProvider:
     """Get appropriate detector implementation(s) based on config type."""
     try:
-        detectors: Dict[str, Any] = {}
+        detectors: dict[str, Any] = {}
 
         # Process shields configuration
         for shield_id, shield_config in config.shields.items():
@@ -83,7 +81,7 @@ async def get_adapter_impl(
             await impl.initialize()
             detectors[shield_id] = impl
 
-        detectors_for_provider: Dict[str, BaseDetector] = {}
+        detectors_for_provider: dict[str, BaseDetector] = {}
         for shield_id, detector in detectors.items():
             if isinstance(detector, BaseDetector):
                 detectors_for_provider[shield_id] = detector
@@ -116,4 +114,6 @@ __all__ = [
     "ConfigType",
     "DetectorType",
     "DetectorConfigError",
+    # Side-effect import
+    "get_provider_spec",
 ]
