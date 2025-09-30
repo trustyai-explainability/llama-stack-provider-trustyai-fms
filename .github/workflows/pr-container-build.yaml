@@ -85,7 +85,7 @@ jobs:
 
           RUN pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
           RUN pip install --no-deps sentence-transformers
-          RUN pip install --no-cache llama-stack==0.2.16
+          RUN pip install --no-cache llama-stack==0.2.23
 
           # Install the local provider package 
           RUN pip install /opt/app-root/
@@ -93,7 +93,7 @@ jobs:
           RUN mkdir -p ${HOME}/.cache
           COPY run.yaml ${APP_ROOT}/run.yaml
 
-          ENTRYPOINT ["python", "-m", "llama_stack.distribution.server.server", "--config", "/opt/app-root/run.yaml"]
+          ENTRYPOINT ["python", "-m", "llama_stack.core.server.server", "/opt/app-root/run.yaml"]
           EOF
 
       - name: Build Image
