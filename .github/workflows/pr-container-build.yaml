@@ -8,6 +8,7 @@ env:
   REGISTRY: quay.io
   ORG: trustyai_testing
   IMAGE_NAME: llama-stack-trustyai-fms
+  MODULE_VERSION: '0.2.2'
 
 jobs:
   build-and-push:
@@ -65,7 +66,6 @@ jobs:
           # Copy the local provider code and pyproject.toml to the same directory
           COPY llama_stack_provider_trustyai_fms/ /opt/app-root/llama_stack_provider_trustyai_fms/
           COPY pyproject.toml /opt/app-root/
-          COPY providers.d/ /opt/app-root/providers.d/
 
           RUN pip install \
               aiosqlite \
@@ -85,7 +85,7 @@ jobs:
 
           RUN pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
           RUN pip install --no-deps sentence-transformers
-          RUN pip install --no-cache llama-stack==0.2.23
+          RUN pip install --no-cache llama-stack==0.2.22
 
           # Install the local provider package 
           RUN pip install /opt/app-root/
