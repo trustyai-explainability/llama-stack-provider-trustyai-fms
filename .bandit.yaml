@@ -1,0 +1,7 @@
+# Ignore B101 (assert_used) only for files under tests/ (recursive)
+assert_used:
+  skips:
+    - "./tests/*.py"
+    - "./tests/*/*.py"
+    - "./tests/*/*/*.py"
+    - "./tests/*/*/*/*.py"
