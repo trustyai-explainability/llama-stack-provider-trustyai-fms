@@ -10,7 +10,7 @@ authors = [
     {name = "GitHub: m-misiura"}
 ]
 maintainers = [
-    {name = "GitHub: m-misiura"}
+    {name = "TrustyAI Developers"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -64,7 +64,7 @@ line-ending = "auto"
 
 [project.urls]
 Homepage = "https://github.com/trustyai-explainability/llama-stack-provider-trustyai-fms"
-"Maintainer GitHub" = "https://github.com/m-misiura"
+"Maintainer GitHub" = "https://github.com/orgs/trustyai-explainability/teams/developers"
 
 [tool.setuptools.packages.find]
 where = ["."]
