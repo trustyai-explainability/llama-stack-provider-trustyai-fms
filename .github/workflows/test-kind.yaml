@@ -1,8 +1,8 @@
-name: Run Kind Tests
+name: Tier 2 - smoke tests on kind cluster
 
 on:
   workflow_run:
-    workflows: ["Build and Push Distro Image"]
+    workflows: ["Build PR Container Image"]
     types:
       - completed
   pull_request:
