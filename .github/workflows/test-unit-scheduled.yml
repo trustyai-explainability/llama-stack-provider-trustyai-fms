@@ -1,0 +1,40 @@
+name: Tier 1 - daily scheduled unit tests against llama-stack main
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  
+  workflow_dispatch:   
+
+jobs:
+  integration-test:
+    name: "Tier 1 - daily scheduled unit tests against llama-stack main"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install git+https://github.com/meta-llama/llama-stack.git@main
+          python -m pip install -e . --no-deps
+          python -m pip install pytest>=7.0.0 pytest-asyncio>=0.21.0 pytest-httpx>=0.21.0 pytest-mock>=3.10.0
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/unit/ -v
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            *.log
+            tests/**/*.log
