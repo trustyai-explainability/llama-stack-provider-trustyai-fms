@@ -12,30 +12,29 @@ from typing import Any, ClassVar, cast
 from urllib.parse import urlparse
 
 import httpx
-from llama_stack.apis.inference import (
-    CompletionMessage,
-    Message,
+from llama_stack_api.inference import (
+    OpenAIAssistantMessageParam,
+    OpenAIDeveloperMessageParam,
+    OpenAIMessageParam,
+    OpenAISystemMessageParam,
+    OpenAIToolMessageParam,
+    OpenAIUserMessageParam,
     SystemMessage,
     ToolResponseMessage,
     UserMessage,
 )
-from llama_stack.apis.resource import ResourceType
-from llama_stack.apis.safety import (
+from llama_stack_api.resource import ResourceType
+from llama_stack_api.safety import (
+    ModerationObject,
+    ModerationObjectResults,
     RunShieldResponse,
     Safety,
     SafetyViolation,
     ShieldStore,
     ViolationLevel,
 )
-
-try:
-    from llama_stack.apis.safety import ModerationObject, ModerationObjectResults
-
-    _HAS_MODERATION = True
-except ImportError:
-    _HAS_MODERATION = False
-from llama_stack.apis.shields import ListShieldsResponse, Shield, Shields
-from llama_stack.providers.datatypes import ShieldsProtocolPrivate
+from llama_stack_api.shields import ListShieldsResponse, Shield, Shields
+from llama_stack_api.datatypes import ShieldsProtocolPrivate
 
 from ..config import (
     BaseDetectorConfig,
@@ -47,13 +46,6 @@ from ..config import (
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-if not _HAS_MODERATION:
-    logger.warning(
-        "llama-stack version does not support ModerationObject/ModerationObjectResults. "
-        "The /v1/openai/v1/moderations endpoint will not be available. "
-        "Upgrade to llama-stack >= 0.2.18 for moderation support."
-    )
 
 
 # Custom exceptions
@@ -218,17 +210,27 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         logger.info(f"Registering shield {shield.identifier}")
         self.registered_shields.append(shield)
 
-    def _should_process_message(self, message: Message) -> bool:
-        """Check if this detector should process the given message type"""
-        # Get exact message type
-        if isinstance(message, UserMessage):
+    def _should_process_message(self, message: OpenAIMessageParam) -> bool:
+        """Check if this detector should process the given message type
+
+        Handles both Llama Stack native types and OpenAI-compatible types:
+        - user: UserMessage, OpenAIUserMessageParam
+        - system: SystemMessage, OpenAISystemMessageParam
+        - tool: ToolResponseMessage, OpenAIToolMessageParam
+        - completion: OpenAIAssistantMessageParam
+        - developer: OpenAIDeveloperMessageParam
+        """
+        # Get exact message type - handle both native and OpenAI-compatible types
+        if isinstance(message, (UserMessage, OpenAIUserMessageParam)):
             message_type = "user"
-        elif isinstance(message, SystemMessage):
+        elif isinstance(message, (SystemMessage, OpenAISystemMessageParam)):
             message_type = "system"
-        elif isinstance(message, ToolResponseMessage):
+        elif isinstance(message, (ToolResponseMessage, OpenAIToolMessageParam)):
             message_type = "tool"
-        elif isinstance(message, CompletionMessage):
+        elif isinstance(message, OpenAIAssistantMessageParam):
             message_type = "completion"
+        elif isinstance(message, OpenAIDeveloperMessageParam):
+            message_type = "developer"
         else:
             logger.warning(f"Unknown message type: {type(message)}")
             return False
@@ -249,7 +251,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
             )
         return is_supported
 
-    def _filter_messages(self, messages: list[Message]) -> list[Message]:
+    def _filter_messages(self, messages: list[OpenAIMessageParam]) -> list[OpenAIMessageParam]:
         """Filter messages based on configured message types"""
         return [msg for msg in messages if self._should_process_message(msg)]
 
@@ -341,7 +343,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         return headers
 
     def _prepare_request_payload(
-        self, messages: list[Message], params: dict[str, Any] | None = None
+        self, messages: list[OpenAIMessageParam], params: dict[str, Any] | None = None
     ) -> RequestPayload:
         """Prepare request payload based on endpoint type and orchestrator mode"""
         logger.debug(
@@ -609,7 +611,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def _run_shield_impl(
         self,
         shield_id: str,
-        messages: list[Message],
+        messages: list[OpenAIMessageParam],
         params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Implementation specific shield running logic"""
@@ -618,7 +620,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
     async def run_shield(
         self,
         shield_id: str,
-        messages: list[Message],
+        messages: list[OpenAIMessageParam],
         params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Run safety checks using configured shield"""
@@ -1342,7 +1344,7 @@ class DetectorProvider(Safety, Shields):
     async def run_shield(
         self,
         shield_id: str,
-        messages: list[Message],
+        messages: list[OpenAIMessageParam],
         params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Run shield against messages with enhanced composite handling"""
@@ -1763,89 +1765,87 @@ class DetectorProvider(Safety, Shields):
                 )
             )
 
-    if _HAS_MODERATION:
+    async def run_moderation(
+        self, input: str | list[str], model: str
+    ) -> ModerationObject:
+        """
+        Runs moderation for each input message.
+        Returns a ModerationObject with one ModerationObjectResults per input.
+        """
+        texts = input  # Avoid shadowing the built-in 'input'
+        try:
+            # Shield ID caching for performance
+            if not hasattr(self, "_model_to_shield_id"):
+                self._model_to_shield_id = {}
+            if model in self._model_to_shield_id:
+                shield_id = self._model_to_shield_id[model]
+            else:
+                shield_id = await self._get_shield_id_from_model(model)
+                self._model_to_shield_id[model] = shield_id
 
-        async def run_moderation(
-            self, input: str | list[str], model: str
-        ) -> ModerationObject:
-            """
-            Runs moderation for each input message.
-            Returns a ModerationObject with one ModerationObjectResults per input.
-            """
-            texts = input  # Avoid shadowing the built-in 'input'
-            try:
-                # Shield ID caching for performance
-                if not hasattr(self, "_model_to_shield_id"):
-                    self._model_to_shield_id = {}
-                if model in self._model_to_shield_id:
-                    shield_id = self._model_to_shield_id[model]
+            messages = self._convert_input_to_messages(texts)
+            shield_response = await self.run_shield(shield_id, messages)
+            metadata = (
+                shield_response.violation.metadata
+                if shield_response.violation and shield_response.violation.metadata
+                else {}
+            )
+            results_metadata = metadata.get("results", [])
+            # Index results by message_index for O(1) lookup
+            results_by_index = {r.get("message_index"): r for r in results_metadata}
+            moderation_results = []
+            for idx, msg in enumerate(messages):
+                result = results_by_index.get(idx)
+                categories = {}
+                category_scores = {}
+                category_applied_input_types = {}
+                flagged = False
+                if result:
+                    cat = result.get("detection_type")
+                    score = result.get("score")
+                    if isinstance(cat, str) and score is not None:
+                        is_violation = result.get("status") == "violation"
+                        categories[cat] = is_violation
+                        category_scores[cat] = float(score)
+                        category_applied_input_types[cat] = ["text"]
+                        flagged = is_violation
+                    meta = result
                 else:
-                    shield_id = await self._get_shield_id_from_model(model)
-                    self._model_to_shield_id[model] = shield_id
-
-                messages = self._convert_input_to_messages(texts)
-                shield_response = await self.run_shield(shield_id, messages)
-                metadata = (
-                    shield_response.violation.metadata
-                    if shield_response.violation and shield_response.violation.metadata
-                    else {}
-                )
-                results_metadata = metadata.get("results", [])
-                # Index results by message_index for O(1) lookup
-                results_by_index = {r.get("message_index"): r for r in results_metadata}
-                moderation_results = []
-                for idx, msg in enumerate(messages):
-                    result = results_by_index.get(idx)
-                    categories = {}
-                    category_scores = {}
-                    category_applied_input_types = {}
-                    flagged = False
-                    if result:
-                        cat = result.get("detection_type")
-                        score = result.get("score")
-                        if isinstance(cat, str) and score is not None:
-                            is_violation = result.get("status") == "violation"
-                            categories[cat] = is_violation
-                            category_scores[cat] = float(score)
-                            category_applied_input_types[cat] = ["text"]
-                            flagged = is_violation
-                        meta = result
-                    else:
-                        meta = {}
-                    moderation_results.append(
-                        ModerationObjectResults(
-                            flagged=flagged,
-                            categories=categories,
-                            category_applied_input_types=category_applied_input_types,
-                            category_scores=category_scores,
-                            user_message=msg.content,
-                            metadata=meta,
-                        )
+                    meta = {}
+                moderation_results.append(
+                    ModerationObjectResults(
+                        flagged=flagged,
+                        categories=categories,
+                        category_applied_input_types=category_applied_input_types,
+                        category_scores=category_scores,
+                        user_message=msg.content,
+                        metadata=meta,
                     )
-                return ModerationObject(
-                    id=str(uuid.uuid4()),
-                    model=model,
-                    results=moderation_results,
                 )
-            except Exception as e:
-                input_list = [texts] if isinstance(texts, str) else texts
-                return ModerationObject(
-                    id=str(uuid.uuid4()),
-                    model=model,
-                    results=[
-                        ModerationObjectResults(
-                            flagged=False,
-                            categories={},
-                            category_applied_input_types={},
-                            category_scores={},
-                            user_message=msg
-                            if isinstance(msg, str)
-                            else getattr(msg, "content", str(msg)),
-                            metadata={"error": str(e), "status": "error"},
-                        )
-                        for msg in input_list
-                    ],
-                )
+            return ModerationObject(
+                id=str(uuid.uuid4()),
+                model=model,
+                results=moderation_results,
+            )
+        except Exception as e:
+            input_list = [texts] if isinstance(texts, str) else texts
+            return ModerationObject(
+                id=str(uuid.uuid4()),
+                model=model,
+                results=[
+                    ModerationObjectResults(
+                        flagged=False,
+                        categories={},
+                        category_applied_input_types={},
+                        category_scores={},
+                        user_message=msg
+                        if isinstance(msg, str)
+                        else getattr(msg, "content", str(msg)),
+                        metadata={"error": str(e), "status": "error"},
+                    )
+                    for msg in input_list
+                ],
+            )
 
     async def _get_shield_id_from_model(self, model: str) -> str:
         """Map model name to shield_id using provider_resource_id."""
@@ -1865,7 +1865,7 @@ class DetectorProvider(Safety, Shields):
             )
         return matching_shields[0]
 
-    def _convert_input_to_messages(self, texts: str | list[str]) -> list[Message]:
+    def _convert_input_to_messages(self, texts: str | list[str]) -> list[OpenAIMessageParam]:
         """Convert string input(s) to UserMessage objects."""
         if isinstance(texts, str):
             inputs = [texts]

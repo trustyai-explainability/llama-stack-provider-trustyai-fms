@@ -4,8 +4,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, cast
 
-from llama_stack.apis.inference import Message
-from llama_stack.apis.safety import RunShieldResponse
+from llama_stack_api.inference import OpenAIMessageParam
+from llama_stack_api.safety import RunShieldResponse
 
 from ..config import ChatDetectorConfig
 from .base import (
@@ -292,7 +292,7 @@ class ChatDetector(BaseDetector):
     async def _run_shield_impl(
         self,
         shield_id: str,
-        messages: list[Message],
+        messages: list[OpenAIMessageParam],
         params: dict[str, Any] | None = None,
     ) -> RunShieldResponse:
         """Implementation of shield checks for chat messages"""
