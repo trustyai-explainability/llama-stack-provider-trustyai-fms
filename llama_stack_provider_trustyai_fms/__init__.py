@@ -2,8 +2,8 @@ import logging
 from typing import Any
 
 # Import Safety API
-from llama_stack.apis.safety import Safety
-from llama_stack.providers.datatypes import Api
+from llama_stack_api.safety import Safety
+from llama_stack_api.datatypes import Api
 
 # First import the provider spec to ensure registration
 from .provider import get_provider_spec

@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
 
-from llama_stack.schema_utils import json_schema_type
+from llama_stack_api.schema_utils import json_schema_type
 from pydantic import BaseModel, Field, model_validator
 
 # Make sure to export all classes at the module level
@@ -29,6 +29,7 @@ class MessageType(Enum):
     SYSTEM = "system"
     TOOL = "tool"
     COMPLETION = "completion"
+    DEVELOPER = "developer"
 
     @classmethod
     def as_set(cls) -> set[str]:
