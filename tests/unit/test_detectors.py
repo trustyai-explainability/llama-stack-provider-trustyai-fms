@@ -2,9 +2,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
-from llama_stack.apis.inference import UserMessage
-from llama_stack.apis.safety import RunShieldResponse
 
+from llama_stack_provider_trustyai_fms.compat import RunShieldResponse, UserMessage
 from llama_stack_provider_trustyai_fms.config import (
     ChatDetectorConfig,
     ContentDetectorConfig,

@@ -7,8 +7,9 @@ from enum import Enum
 from typing import Any
 from urllib.parse import urlparse
 
-from llama_stack_api.schema_utils import json_schema_type
 from pydantic import BaseModel, Field, model_validator
+
+from .compat import json_schema_type
 
 # Make sure to export all classes at the module level
 __all__ = [

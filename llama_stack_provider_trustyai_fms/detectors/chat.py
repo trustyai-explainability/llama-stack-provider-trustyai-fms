@@ -4,9 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, cast
 
-from llama_stack_api.inference import OpenAIMessageParam
-from llama_stack_api.safety import RunShieldResponse
-
+from ..compat import OpenAIMessageParam, RunShieldResponse
 from ..config import ChatDetectorConfig
 from .base import (
     BaseDetector,
