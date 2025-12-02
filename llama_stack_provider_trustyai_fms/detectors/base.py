@@ -12,30 +12,30 @@ from typing import Any, ClassVar, cast
 from urllib.parse import urlparse
 
 import httpx
-from llama_stack_api.inference import (
+
+from ..compat import (
+    ListShieldsResponse,
+    ModerationObject,
+    ModerationObjectResults,
     OpenAIAssistantMessageParam,
     OpenAIDeveloperMessageParam,
     OpenAIMessageParam,
     OpenAISystemMessageParam,
     OpenAIToolMessageParam,
     OpenAIUserMessageParam,
-    SystemMessage,
-    ToolResponseMessage,
-    UserMessage,
-)
-from llama_stack_api.resource import ResourceType
-from llama_stack_api.safety import (
-    ModerationObject,
-    ModerationObjectResults,
+    ResourceType,
     RunShieldResponse,
     Safety,
     SafetyViolation,
+    Shield,
+    Shields,
+    ShieldsProtocolPrivate,
     ShieldStore,
+    SystemMessage,
+    ToolResponseMessage,
+    UserMessage,
     ViolationLevel,
 )
-from llama_stack_api.shields import ListShieldsResponse, Shield, Shields
-from llama_stack_api.datatypes import ShieldsProtocolPrivate
-
 from ..config import (
     BaseDetectorConfig,
     ChatDetectorConfig,
@@ -251,7 +251,9 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
             )
         return is_supported
 
-    def _filter_messages(self, messages: list[OpenAIMessageParam]) -> list[OpenAIMessageParam]:
+    def _filter_messages(
+        self, messages: list[OpenAIMessageParam]
+    ) -> list[OpenAIMessageParam]:
         """Filter messages based on configured message types"""
         return [msg for msg in messages if self._should_process_message(msg)]
 
@@ -1865,7 +1867,9 @@ class DetectorProvider(Safety, Shields):
             )
         return matching_shields[0]
 
-    def _convert_input_to_messages(self, texts: str | list[str]) -> list[OpenAIMessageParam]:
+    def _convert_input_to_messages(
+        self, texts: str | list[str]
+    ) -> list[OpenAIMessageParam]:
         """Convert string input(s) to UserMessage objects."""
         if isinstance(texts, str):
             inputs = [texts]

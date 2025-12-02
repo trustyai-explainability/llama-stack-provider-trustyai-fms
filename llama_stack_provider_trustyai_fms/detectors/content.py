@@ -3,9 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from llama_stack_api.inference import OpenAIMessageParam
-from llama_stack_api.safety import RunShieldResponse
-
+from ..compat import OpenAIMessageParam, RunShieldResponse
 from ..config import (
     ContentDetectorConfig,
 )

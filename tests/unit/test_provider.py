@@ -1,12 +1,16 @@
-from llama_stack.providers.datatypes import Api, ProviderSpec
+from llama_stack_provider_trustyai_fms.compat import (
+    Api,
+    ProviderSpec,
+    RemoteProviderSpec,
+)
 
 try:
     from llama_stack.providers.datatypes import AdapterSpec
 
     USE_LEGACY = True
 except ImportError:
-    from llama_stack.providers.datatypes import RemoteProviderSpec
-
+    # New llama-stack-api doesn't have AdapterSpec or llama_stack.providers.datatypes
+    AdapterSpec = None
     USE_LEGACY = False
 
 from llama_stack_provider_trustyai_fms.provider import (
