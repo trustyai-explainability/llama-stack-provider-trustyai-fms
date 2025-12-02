@@ -69,17 +69,20 @@ except ModuleNotFoundError:  # Legacy llama_stack layout
     OpenAISystemMessageParam = SystemMessage
     OpenAIToolMessageParam = ToolResponseMessage
     OpenAIAssistantMessageParam = CompletionMessage
-    OpenAIDeveloperMessageParam = SystemMessage  # Developer didn't exist 
+    OpenAIDeveloperMessageParam = SystemMessage  # Developer didn't exist
 
     try:
         from llama_stack.apis.safety import ModerationObject, ModerationObjectResults
     except ImportError:
+
         class ModerationObject:
             """Placeholder for legacy versions without ModerationObject"""
+
             pass
 
         class ModerationObjectResults:
             """Placeholder for legacy versions without ModerationObjectResults"""
+
             pass
 
 
