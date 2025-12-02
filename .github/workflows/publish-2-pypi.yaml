@@ -30,7 +30,6 @@ jobs:
           ls -la dist/
           test -f dist/*.tar.gz && echo "Source distribution created"
           test -f dist/*.whl && echo "Wheel distribution created"
-      
-      - uses: pypa/gh-action-pypi-publish@v1.10.3  # Pinned version
-        with:
-          publish-oidc: true
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
