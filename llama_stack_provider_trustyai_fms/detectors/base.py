@@ -325,7 +325,7 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
 
         return detector_params
 
-    def _prepare_headers(self) -> Headers:
+    def _prepare_headers(self, params: dict[str, Any] = None) -> Headers:
         """Prepare request headers based on configuration"""
         headers: Headers = {
             "accept": "application/json",
@@ -341,6 +341,11 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
             headers.update(auth_headers)
         elif self.config.auth_token:
             headers["Authorization"] = f"Bearer {self.config.auth_token}"
+
+        if params is not None:
+            for k, v in params.items():
+                if k.lower() == "headers" and isinstance(v, dict):
+                    headers.update(v)
 
         return headers
 
