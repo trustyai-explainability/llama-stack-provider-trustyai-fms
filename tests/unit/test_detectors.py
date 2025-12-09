@@ -286,6 +286,32 @@ class TestDetectorHTTP:
         )  # Should detect violation because score > threshold
 
     @pytest.mark.asyncio
+    async def test_headers_extracted_from_params(self, initialized_detector):
+        detector = initialized_detector
+
+        # Patch _make_request to capture headers
+        called = {}
+
+        async def fake_make_request(request, headers, timeout=None):
+            called["headers"] = headers
+            # Return a valid detection so the rest of the code works
+            return [{"score": 0.9, "label": "label", "detection_type": "content"}]
+
+        detector._make_request = fake_make_request
+
+        messages = [UserMessage(content="Test content", role="user")]
+        params = {"headers": {"X-Test-Header": "header-value", "another": "foo"}}
+        await detector.run_shield(
+            shield_id=detector.config.detector_id, messages=messages, params=params
+        )
+
+        # Check that headers were extracted and passed
+        assert "X-Test-Header" in called["headers"]
+        assert called["headers"]["X-Test-Header"] == "header-value"
+        assert "another" in called["headers"]
+        assert called["headers"]["another"] == "foo"
+
+    @pytest.mark.asyncio
     async def test_http_request_no_violation(self, initialized_detector, httpx_mock):
         detector = initialized_detector
 

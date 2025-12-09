@@ -121,7 +121,7 @@ class ContentDetector(BaseDetector):
         """Call detector API with proper endpoint selection"""
         try:
             request = self._prepare_content_request(content, params)
-            headers = self._prepare_headers()
+            headers = self._prepare_headers(params)
 
             logger.info("Making detector API request")
             logger.debug(f"Request headers: {headers}")

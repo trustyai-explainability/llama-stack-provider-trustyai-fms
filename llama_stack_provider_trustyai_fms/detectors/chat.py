@@ -199,7 +199,7 @@ class ChatDetector(BaseDetector):
         """Call chat detector API with proper endpoint selection"""
         try:
             request = self._prepare_chat_request(messages, params)
-            headers = self._prepare_headers()
+            headers = self._prepare_headers(params)
 
             logger.info("Making detector API request")
             logger.debug(f"Request headers: {headers}")
