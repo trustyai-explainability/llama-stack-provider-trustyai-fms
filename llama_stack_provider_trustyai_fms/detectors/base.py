@@ -837,8 +837,11 @@ class SimpleShieldStore(ShieldStore):
         confidence_threshold = params.get("confidence_threshold", 0.5)
         message_types = params.get("message_types", ["system"])
 
-        # Create detector params
-        detector_params = DetectorParams()
+        # Create detector params from API params
+        detector_params_dict = params.get("detector_params", {})
+        if not isinstance(detector_params_dict, dict):
+            detector_params_dict = {}
+        detector_params = DetectorParams(**detector_params_dict)
 
         # Handle detectors configuration (like your email_hap example)
         if "detectors" in params:
@@ -865,7 +868,7 @@ class SimpleShieldStore(ShieldStore):
                 max_concurrency=10,
                 # URL configuration
                 orchestrator_url=orchestrator_url,
-                detector_url=None,  # Will be set if needed
+                detector_url=params.get("detector_url"),
                 auth_token=params.get("auth_token"),
                 verify_ssl=params.get("verify_ssl", True),
                 ssl_cert_path=params.get("ssl_cert_path"),
@@ -887,7 +890,7 @@ class SimpleShieldStore(ShieldStore):
                 max_concurrency=10,
                 # URL configuration
                 orchestrator_url=orchestrator_url,
-                detector_url=None,
+                detector_url=params.get("detector_url"),
                 auth_token=params.get("auth_token"),
                 verify_ssl=params.get("verify_ssl", True),
                 ssl_cert_path=params.get("ssl_cert_path"),
@@ -1298,6 +1301,38 @@ class DetectorProvider(Safety, Shields):
         raise DetectorValidationError(
             f"Cannot create shield '{shield_identifier}': no detector configuration found and no API parameters provided"
         )
+
+    async def unregister_shield(self, identifier: str) -> None:
+        """Unregister a shield and remove it from the provider"""
+        logger.info(f"Provider {self._provider_id} unregistering shield: {identifier}")
+
+        # Remove from provider's shields dictionary
+        if identifier in self._shields:
+            del self._shields[identifier]
+            logger.info(f"Removed shield {identifier} from provider's _shields")
+
+        # Remove from shield store
+        if (
+            hasattr(self._shield_store, "_shields")
+            and identifier in self._shield_store._shields
+        ):
+            del self._shield_store._shields[identifier]
+            logger.info(f"Removed shield {identifier} from shield store's _shields")
+
+        # Remove detector config from shield store
+        if (
+            hasattr(self._shield_store, "_detector_configs")
+            and identifier in self._shield_store._detector_configs
+        ):
+            del self._shield_store._detector_configs[identifier]
+            logger.info(f"Removed detector config for {identifier} from shield store")
+
+        # Remove detector instance if it's a dynamic shield
+        if identifier in self.detectors:
+            del self.detectors[identifier]
+            logger.info(f"Removed detector instance for {identifier}")
+
+        logger.info(f"Successfully unregistered shield: {identifier}")
 
     def _generate_shield_params(self, detector) -> dict[str, Any]:
         """Generate shield parameters from detector config"""
