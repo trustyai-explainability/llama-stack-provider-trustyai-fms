@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llama-stack-provider-trustyai-fms"
-version = "0.3.2"
+version = "0.4.0"
 description = "Remote safety provider for Llama Stack integrating FMS Guardrails Orchestrator and community detectors"
 authors = [
     {name = "GitHub: m-misiura"}
@@ -33,7 +33,7 @@ test = [
     "pytest-asyncio>=0.21.0",
     "pytest-httpx>=0.21.0",
     "pytest-mock>=3.10.0",
-    "llama-stack==0.3.5",
+    "llama-stack>=0.5.0",
 ]
 
 [tool.ruff]

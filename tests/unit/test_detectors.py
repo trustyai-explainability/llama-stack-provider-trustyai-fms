@@ -3,7 +3,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from llama_stack_provider_trustyai_fms.compat import RunShieldResponse, UserMessage
+from llama_stack_provider_trustyai_fms.compat import (
+    OpenAIUserMessageParam,
+    RunShieldRequest,
+    RunShieldResponse,
+)
 from llama_stack_provider_trustyai_fms.config import (
     ChatDetectorConfig,
     ContentDetectorConfig,
@@ -77,9 +81,11 @@ class TestContentDetector:
         ) as mock_request:
             mock_request.return_value = mock_response_data
 
-            messages = [UserMessage(content="Test message", role="user")]
+            messages = [OpenAIUserMessageParam(content="Test message", role="user")]
             result = await content_detector.run_shield(
-                shield_id=content_detector.config.detector_id, messages=messages
+                RunShieldRequest(
+                    shield_id=content_detector.config.detector_id, messages=messages
+                )
             )
 
             assert isinstance(result, RunShieldResponse)
@@ -160,9 +166,11 @@ class TestChatDetector:
         ) as mock_request:
             mock_request.return_value = mock_response_data
 
-            messages = [UserMessage(content="Test chat message", role="user")]
+            messages = [OpenAIUserMessageParam(content="Test chat message", role="user")]
             result = await chat_detector.run_shield(
-                shield_id=chat_detector.config.detector_id, messages=messages
+                RunShieldRequest(
+                    shield_id=chat_detector.config.detector_id, messages=messages
+                )
             )
 
             assert isinstance(result, RunShieldResponse)
@@ -197,9 +205,11 @@ class TestChatDetector:
         ) as mock_request:
             mock_request.return_value = mock_response_data
 
-            messages = [UserMessage(content="Direct chat test", role="user")]
+            messages = [OpenAIUserMessageParam(content="Direct chat test", role="user")]
             result = await detector.run_shield(
-                shield_id=detector.config.detector_id, messages=messages
+                RunShieldRequest(
+                    shield_id=detector.config.detector_id, messages=messages
+                )
             )
 
             assert isinstance(result, RunShieldResponse)
@@ -275,9 +285,9 @@ class TestDetectorHTTP:
             status_code=200,
         )
 
-        messages = [UserMessage(content="Test content", role="user")]
+        messages = [OpenAIUserMessageParam(content="Test content", role="user")]
         result = await detector.run_shield(
-            shield_id=detector.config.detector_id, messages=messages
+            RunShieldRequest(shield_id=detector.config.detector_id, messages=messages)
         )
 
         assert isinstance(result, RunShieldResponse)
@@ -285,31 +295,7 @@ class TestDetectorHTTP:
             result.violation is not None
         )  # Should detect violation because score > threshold
 
-    @pytest.mark.asyncio
-    async def test_headers_extracted_from_params(self, initialized_detector):
-        detector = initialized_detector
-
-        # Patch _make_request to capture headers
-        called = {}
-
-        async def fake_make_request(request, headers, timeout=None):
-            called["headers"] = headers
-            # Return a valid detection so the rest of the code works
-            return [{"score": 0.9, "label": "label", "detection_type": "content"}]
-
-        detector._make_request = fake_make_request
-
-        messages = [UserMessage(content="Test content", role="user")]
-        params = {"headers": {"X-Test-Header": "header-value", "another": "foo"}}
-        await detector.run_shield(
-            shield_id=detector.config.detector_id, messages=messages, params=params
-        )
-
-        # Check that headers were extracted and passed
-        assert "X-Test-Header" in called["headers"]
-        assert called["headers"]["X-Test-Header"] == "header-value"
-        assert "another" in called["headers"]
-        assert called["headers"]["another"] == "foo"
+    # test_headers_extracted_from_params removed - params field was removed from API in PR #4643
 
     @pytest.mark.asyncio
     async def test_http_request_no_violation(self, initialized_detector, httpx_mock):
@@ -322,9 +308,9 @@ class TestDetectorHTTP:
             status_code=200,
         )
 
-        messages = [UserMessage(content="Safe content", role="user")]
+        messages = [OpenAIUserMessageParam(content="Safe content", role="user")]
         result = await detector.run_shield(
-            shield_id=detector.config.detector_id, messages=messages
+            RunShieldRequest(shield_id=detector.config.detector_id, messages=messages)
         )
 
         assert isinstance(result, RunShieldResponse)
@@ -345,11 +331,11 @@ class TestDetectorHTTP:
                 status_code=500,
             )
 
-        messages = [UserMessage(content="Test content", role="user")]
+        messages = [OpenAIUserMessageParam(content="Test content", role="user")]
 
         # The error should be caught and wrapped in a RunShieldResponse with violation
         result = await detector.run_shield(
-            shield_id=detector.config.detector_id, messages=messages
+            RunShieldRequest(shield_id=detector.config.detector_id, messages=messages)
         )
         assert isinstance(result, RunShieldResponse)
         assert result.violation is not None
@@ -366,9 +352,9 @@ class TestDetectorHTTP:
             status_code=200,
         )
 
-        messages = [UserMessage(content="Test content", role="user")]
+        messages = [OpenAIUserMessageParam(content="Test content", role="user")]
         result = await detector.run_shield(
-            shield_id=detector.config.detector_id, messages=messages
+            RunShieldRequest(shield_id=detector.config.detector_id, messages=messages)
         )
 
         assert isinstance(result, RunShieldResponse)

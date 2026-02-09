@@ -24,6 +24,8 @@ from ..compat import (
     OpenAIToolMessageParam,
     OpenAIUserMessageParam,
     ResourceType,
+    RunModerationRequest,
+    RunShieldRequest,
     RunShieldResponse,
     Safety,
     SafetyViolation,
@@ -625,12 +627,12 @@ class BaseDetector(Safety, ShieldsProtocolPrivate, ABC):
         pass
 
     async def run_shield(
-        self,
-        shield_id: str,
-        messages: list[OpenAIMessageParam],
-        params: dict[str, Any] | None = None,
+        self, request: RunShieldRequest
     ) -> RunShieldResponse:
         """Run safety checks using configured shield"""
+        shield_id = request.shield_id
+        messages = request.messages
+        params = None  # params removed from API but still used internally
         try:
             if not messages:
                 return RunShieldResponse(
@@ -1384,12 +1386,12 @@ class DetectorProvider(Safety, Shields):
         return params
 
     async def run_shield(
-        self,
-        shield_id: str,
-        messages: list[OpenAIMessageParam],
-        params: dict[str, Any] | None = None,
+        self, request: RunShieldRequest
     ) -> RunShieldResponse:
         """Run shield against messages with enhanced composite handling"""
+        shield_id = request.shield_id
+        messages = request.messages
+        params = None  # params removed from API but still used internally
         try:
             # Step 1: Initial validation and initialization
             if not self._initialized:
@@ -1808,13 +1810,14 @@ class DetectorProvider(Safety, Shields):
             )
 
     async def run_moderation(
-        self, input: str | list[str], model: str
+        self, request: RunModerationRequest
     ) -> ModerationObject:
         """
         Runs moderation for each input message.
         Returns a ModerationObject with one ModerationObjectResults per input.
         """
-        texts = input  # Avoid shadowing the built-in 'input'
+        texts = request.input
+        model = request.model
         try:
             # Shield ID caching for performance
             if not hasattr(self, "_model_to_shield_id"):
@@ -1826,7 +1829,9 @@ class DetectorProvider(Safety, Shields):
                 self._model_to_shield_id[model] = shield_id
 
             messages = self._convert_input_to_messages(texts)
-            shield_response = await self.run_shield(shield_id, messages)
+            shield_response = await self.run_shield(
+                RunShieldRequest(shield_id=shield_id, messages=messages)
+            )
             metadata = (
                 shield_response.violation.metadata
                 if shield_response.violation and shield_response.violation.metadata
@@ -1910,12 +1915,12 @@ class DetectorProvider(Safety, Shields):
     def _convert_input_to_messages(
         self, texts: str | list[str]
     ) -> list[OpenAIMessageParam]:
-        """Convert string input(s) to UserMessage objects."""
+        """Convert string input(s) to OpenAIUserMessageParam objects."""
         if isinstance(texts, str):
             inputs = [texts]
         else:
             inputs = texts
-        return [UserMessage(content=text) for text in inputs]
+        return [OpenAIUserMessageParam(content=text, role="user") for text in inputs]
 
     async def shutdown(self) -> None:
         """Cleanup resources"""

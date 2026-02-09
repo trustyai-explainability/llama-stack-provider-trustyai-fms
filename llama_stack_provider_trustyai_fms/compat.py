@@ -36,6 +36,7 @@ try:  # Current dedicated llama_stack_api package (preferred)
         ShieldStore,
         ViolationLevel,
     )
+    from llama_stack_api.safety.models import RunModerationRequest, RunShieldRequest
     from llama_stack_api.schema_utils import json_schema_type
     from llama_stack_api.shields import ListShieldsResponse, Shield, Shields
 
@@ -85,6 +86,21 @@ except ModuleNotFoundError:  # Legacy llama_stack layout
 
             pass
 
+    # Legacy versions don't have request models - create placeholders
+    from pydantic import BaseModel
+
+    class RunShieldRequest(BaseModel):
+        """Legacy placeholder for RunShieldRequest"""
+
+        shield_id: str
+        messages: list
+
+    class RunModerationRequest(BaseModel):
+        """Legacy placeholder for RunModerationRequest"""
+
+        input: str | list[str]
+        model: str | None = None
+
 
 __all__ = [
     "Api",
@@ -100,6 +116,8 @@ __all__ = [
     "ProviderSpec",
     "RemoteProviderSpec",
     "ResourceType",
+    "RunModerationRequest",
+    "RunShieldRequest",
     "RunShieldResponse",
     "Safety",
     "SafetyViolation",
