@@ -15,6 +15,9 @@ maintainers = [
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
+classifiers = [
+    "Development Status :: 7 - Inactive",
+]
 dependencies = [
     "fastapi",
     "opentelemetry-api",

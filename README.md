@@ -1,3 +1,5 @@
+> **Note: This project is in maintenance mode.** It is no longer under active development. Bug fixes and security patches may still be accepted, but no new features are planned.
+
 # `trustyai_fms`: out-of-tree remote safety provider for llama stack
 
 This repo implements [FMS Guardrails Orchestrator](https://github.com/foundation-model-stack/fms-guardrails-orchestrator) together with community detectors:
